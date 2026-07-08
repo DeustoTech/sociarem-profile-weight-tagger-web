@@ -30,4 +30,4 @@ jobs:
             -o StrictHostKeyChecking=accept-new \
             -o IdentitiesOnly=yes \
             "$SERVER_USER@$SERVER_HOST" \
-            "/home/roberto/srv/apps/sociarem/deploy.sh"
+            "/home/roberto/srv/apps/externos/sociarem/deploy.sh"
