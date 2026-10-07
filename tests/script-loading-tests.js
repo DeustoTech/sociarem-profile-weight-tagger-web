@@ -31,7 +31,8 @@ context.window = context;
 for (const src of localScripts) vm.runInContext(fs.readFileSync(path.join(root, src), 'utf8'), context, {filename:src});
 
 const exposed = vm.runInContext(`({
-  renderIndicatorBuilder:typeof renderIndicatorBuilder,
+  renderProfileBuilder:typeof renderProfileBuilder,
+  validateProfileDefinition:typeof validateProfileDefinition,
   evaluateExpression:typeof evaluateExpression,
   validateExpression:typeof validateExpression,
   findDependencyCycle:typeof findDependencyCycle,
@@ -41,9 +42,18 @@ const exposed = vm.runInContext(`({
 })`, context);
 
 for (const [name, type] of Object.entries(exposed)) assert.equal(type, 'function', `${name} must load as a function`);
+const renderedProfileBuilder = vm.runInContext(`(() => {
+  state.role = 'methodology';
+  const area = {innerHTML:''};
+  renderProfileBuilder(area);
+  return area.innerHTML;
+})()`, context);
+assert.match(renderedProfileBuilder, /Construcción de perfiles/);
+assert.match(renderedProfileBuilder, /Regla activadora/);
+assert.match(renderedProfileBuilder, /Variables ponderables/);
 assert.deepEqual(localScripts, [
   'data.js','indicator-units.js','indicator-expression.js','indicator-evaluator.js',
-  'indicator-dependencies.js','indicator-serialization.js','app.js','indicator-builder.js',
+  'indicator-dependencies.js','indicator-serialization.js','profile-definitions.js','app.js','profile-builder.js',
 ]);
 
 console.log('✓ Script order, references and phase entry points are consistent');

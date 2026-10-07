@@ -50,8 +50,9 @@ function evaluateExpression(expression, context = {}) {
       return coerceInputValue(value, node.dataType || 'number', node.label || node.field || node.inputId, path);
     }
     if (node.type === 'indicatorRef') {
-      if (!(node.indicatorId in (context.indicators || {}))) throw new IndicatorEvaluationError('MISSING_DEPENDENCY', `Falta el valor de ${node.indicatorId}.`, path);
-      return coerceInputValue(context.indicators[node.indicatorId], node.dataType || 'number', node.indicatorId, path);
+      const source = node.valueMode === 'risk' ? context.riskIndicators : node.valueMode === 'raw' ? context.rawIndicators : context.indicators;
+      if (!(node.indicatorId in (source || {}))) throw new IndicatorEvaluationError('MISSING_DEPENDENCY', `Falta el valor de ${node.indicatorId}.`, path);
+      return coerceInputValue(source[node.indicatorId], node.dataType || 'number', node.indicatorId, path);
     }
     if (node.type === 'constant') return coerceInputValue(node.value, node.dataType || 'number', node.label || 'Constante', path);
     if (node.type === 'parameter') {
@@ -77,6 +78,14 @@ function evaluateExpression(expression, context = {}) {
     };
     let value;
     switch (node.type) {
+      case 'weightedSum': {
+        numeric();
+        const weightValues = args.map((_, index) => Math.max(0, Number(context.weights?.[node.weightKeys?.[index]]) || 0));
+        const totalWeight = weightValues.reduce((sum, weight) => sum + weight, 0);
+        if (totalWeight <= 0) throw new IndicatorEvaluationError('ZERO_WEIGHTS', 'WEIGHTED SUM necesita al menos un peso mayor que cero.', path);
+        value = args.reduce((sum, operand, index) => sum + operand * weightValues[index], 0) / totalWeight;
+        break;
+      }
       case 'add': case 'sum': numeric(); value = args.reduce((a,b)=>a+b,0); break;
       case 'subtract': numeric(); value = args[0] - args[1]; break;
       case 'multiply': case 'scale': numeric(); value = args.reduce((a,b)=>a*b,1); break;

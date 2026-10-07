@@ -50,14 +50,14 @@ function scoreToLevel(score) {
 
 const MODEL_INFO = {
   indicatorCatalog: 'V3.0 · 24 indicadores activos',
-  profileModel: 'v0.1 provisional · perfiles pendientes de validación',
+  profileModel: 'v0.2 preliminar · P1–P6 basados en D1.5',
   demoData: 'Datos sintéticos · no usar para decisiones reales',
 };
 
 const DEMO_ROLES = {
   methodology: {
     label: 'Diseño metodológico',
-    description: 'Crea y revisa indicadores y reglas antes de publicarlos.',
+    description: 'Construye y revisa perfiles, reglas activadoras y variables antes de publicarlos.',
     canEditIndicators: true,
     canEvaluate: false,
     canFacilitate: false,
@@ -87,12 +87,12 @@ const DEMO_ROLES = {
 
 const WORKFLOW_STAGES = [
   {
-    id: 'indicator-builder', number: 0, short: 'Indicadores', title: 'Construcción de indicadores',
+    id: 'profile-builder', number: 0, short: 'Perfiles', title: 'Construcción de perfiles',
     state: 'Prototipo disponible', implemented: true,
-    description: 'Definir variables, tipos, fuentes y reglas mediante bloques trazables antes de abrir la evaluación experta.',
-    outputs: ['Catálogo versionado', 'Reglas verificables', 'Indicadores enviados a revisión'],
+    description: 'Combinar indicadores ya definidos en perfiles, separar activación y priorización, y publicar la lógica que después ponderan las personas expertas.',
+    outputs: ['Perfiles versionados', 'Reglas activadoras verificables', 'Variables ponderables para expertos'],
     actors: ['Diseño metodológico', 'Revisión ética', 'Responsables de datos'],
-    safeguards: ['Sin código arbitrario', 'Datos ausentes ≠ cero', 'Trazabilidad de fuentes'],
+    safeguards: ['Activación separada de pesos', 'Datos ausentes ≠ cero', 'Trazabilidad documental'],
   },
   {
     id: 'expert-evaluation', number: 1, short: 'Expertos', title: 'Evaluación experta individual',
@@ -656,10 +656,36 @@ let HOUSEHOLDS = JSON.parse(JSON.stringify(DEMO_HOUSEHOLDS));
 
 // ─── Funciones de cálculo ─────────────────────────────────────────────────────
 
-function scoreHousehold(hh, weights, profile, T) {
+function scoreLegacyHousehold(hh, weights, profile, T) {
   const keys = PROFILES[profile].weight_keys;
-  const totalW = keys.reduce((s, k) => s + (weights[k] || 0), 0) || 1;
+  const totalW = keys.reduce((s, k) => s + (weights[k] || 0), 0);
+  if (totalW <= 0) return 0;
   return keys.reduce((s, k) => s + (weights[k] || 0) * INDICATOR_DEFS[k].norm(hh, T), 0) / totalW;
+}
+
+function profileEvaluationContext(hh, weights, profile, T) {
+  const def = PROFILES[profile];
+  const indicators = {}, riskIndicators = {}, rawIndicators = {};
+  for (const id of def.display_keys) {
+    const indicator = INDICATOR_DEFS[id];
+    if (!indicator) continue;
+    indicators[id] = indicator.norm(hh, T);
+    riskIndicators[id] = Boolean(indicator.risk(hh, T));
+    rawIndicators[id] = hh[id];
+  }
+  return {indicators, riskIndicators, rawIndicators, weights, parameters:T};
+}
+
+function scoreHousehold(hh, weights, profile, T) {
+  const def = PROFILES[profile];
+  if (!def.expression || typeof evaluateExpression !== 'function') return scoreLegacyHousehold(hh, weights, profile, T);
+  if (def.weight_keys.every(key => !(Number(weights[key]) > 0))) return 0;
+  try {
+    return clamp(Number(evaluateExpression(def.expression, profileEvaluationContext(hh, weights, profile, T)).value) || 0);
+  } catch (error) {
+    console.warn(`No se pudo evaluar ${profile}: ${error.message}`);
+    return 0;
+  }
 }
 
 // MSE ordinal: target = expertLabel / 4, minimiza (score - target)²
@@ -678,25 +704,23 @@ function optimizeWeights(profile, expertLabels, thresholds) {
   const w = {};
   keys.forEach(k => w[k] = init[k]);
 
+  const loss = candidate => {
+    const normalized = normalizeWeights(candidate, keys);
+    const fit = labeled.reduce((sum, hh) => {
+      const error = scoreHousehold(hh, normalized, profile, thresholds) - expertLabels[hh.id] / 4;
+      return sum + error * error;
+    }, 0) / labeled.length;
+    const regularization = keys.reduce((sum, key) => sum + Math.pow((normalized[key] || 0) - (init[key] || 0), 2), 0);
+    return fit + LAMBDA * regularization;
+  };
+
   for (let iter = 0; iter < ITERS; iter++) {
-    const totalW = keys.reduce((s, k) => s + w[k], 0) || 1;
     const grad = {};
-    keys.forEach(k => grad[k] = 0);
-
-    for (const hh of labeled) {
-      const target   = expertLabels[hh.id] / 4;        // normalise 0-4 → 0-1
-      const rawScore = keys.reduce((s, k) => s + w[k] * INDICATOR_DEFS[k].norm(hh, thresholds), 0) / totalW;
-      const err      = rawScore - target;               // MSE gradient
-
-      for (const k of keys) {
-        const nk     = INDICATOR_DEFS[k].norm(hh, thresholds);
-        const numerN = keys.reduce((a, j) => a + w[j] * INDICATOR_DEFS[j].norm(hh, thresholds), 0);
-        grad[k] += err * (nk * totalW - numerN) / (totalW * totalW);
-      }
-    }
-
+    const epsilon = 0.0005;
     for (const k of keys) {
-      grad[k] += 2 * LAMBDA * (w[k] - init[k]);
+      const plus = {...w, [k]:w[k] + epsilon};
+      const minus = {...w, [k]:Math.max(0, w[k] - epsilon)};
+      grad[k] = (loss(plus) - loss(minus)) / (plus[k] - minus[k] || epsilon);
       w[k] = Math.max(0, w[k] - lr * grad[k]);
     }
 
@@ -774,7 +798,7 @@ function runParityTests() {
   for (const hh of HOUSEHOLDS) {
     for (const p of Object.keys(PROFILES)) {
       const key = `${hh.id}_${p}`;
-      const js = scoreHousehold(hh, PROFILES[p].init_weights, p, T);
+      const js = scoreLegacyHousehold(hh, PROFILES[p].init_weights, p, T);
       const py = PARITY_REFERENCE[key];
       const ok = Math.abs(js - py) < 0.001;
       if (ok) passed++; else failed++;

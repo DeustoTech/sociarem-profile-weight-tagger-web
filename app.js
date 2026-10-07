@@ -7,6 +7,7 @@ const state = {
   role: 'expert',
   workflowStage: 'expert-evaluation',
   selectedIndicatorId: 'I1',
+  selectedProfileDefinitionId: 'P1',
   thresholds: {...DEFAULT_THRESHOLDS},
   activeProfile: 'P1',
   activeHouseholdIndex: 0,
@@ -36,8 +37,18 @@ const CONSENSUS_SUBMISSIONS_KEY = 'sociarem_consensus_submissions_v1';
 const CONSENSUS_CANDIDATES_KEY = 'sociarem_consensus_candidates_v1';
 
 function canEditIndicators() { return !!roleDef().canEditIndicators; }
+function canEditProfiles() { return !!roleDef().canEditIndicators; }
 function canEvaluate() { return !!roleDef().canEvaluate; }
 function canFacilitate() { return !!roleDef().canFacilitate; }
+
+function ensureProfileState(profileId) {
+  if (!state.profiles[profileId]) state.profiles[profileId] = {phase:1,expertLabels:{},optimizedWeights:null,liveWeights:null};
+  return state.profiles[profileId];
+}
+
+function profileHasReferenceLabels(profileId) {
+  return HOUSEHOLDS.some(hh => hh.gt && Number.isInteger(hh.gt[profileId]));
+}
 
 function currentWeights() {
   const s   = ps();
@@ -109,7 +120,7 @@ function enterApp() {
   state.username = username;
   state.role = DEMO_ROLES[selectedRole] ? selectedRole : 'observer';
   state.workflowStage = state.role === 'methodology'
-    ? 'indicator-builder'
+    ? 'profile-builder'
     : state.role === 'facilitator' ? 'expert-consensus' : 'expert-evaluation';
   localStorage.setItem('sociarem_username', username);
   localStorage.setItem('sociarem_role', state.role);
@@ -171,7 +182,7 @@ function renderTopbar() {
   const profileContext = ['expert-evaluation', 'expert-consensus'].includes(state.workflowStage);
   if (profileWrap) profileWrap.style.display = profileContext ? '' : 'none';
   const refWrap = document.getElementById('ref-toggle-wrap');
-  if (refWrap) refWrap.style.display = state.workflowStage === 'expert-evaluation' ? '' : 'none';
+  if (refWrap) refWrap.style.display = state.workflowStage === 'expert-evaluation' && profileHasReferenceLabels(state.activeProfile) ? '' : 'none';
   const expertContext = state.workflowStage === 'expert-evaluation';
   const dataPanel = document.getElementById('data-panel');
   const search = document.getElementById('search-input');
@@ -203,6 +214,7 @@ function switchWorkflowStage(stageId) {
 }
 
 function switchProfile(pid) {
+  ensureProfileState(pid);
   state.activeProfile = pid;
   renderTopbar();
   renderSidebar();
@@ -211,7 +223,7 @@ function switchProfile(pid) {
 }
 
 function toggleRefLabels() {
-  if (!state.hasGT) {
+  if (!state.hasGT || !profileHasReferenceLabels(state.activeProfile)) {
     document.getElementById('ref-toggle-check').checked = false;
     return;
   }
@@ -294,7 +306,7 @@ function renderSidebarBottom() {
     ${inPhase2 ? `
       <button class="btn btn-secondary btn-sm btn-full mb-1" onclick="backToPhase1()">← Volver a fase 1</button>
     ` : `
-      ${state.hasGT ? `
+      ${state.hasGT && profileHasReferenceLabels(state.activeProfile) ? `
         <button class="btn btn-secondary btn-sm btn-full mb-1" ${canEvaluate() ? '' : 'disabled'} onclick="autoAssign(true)">▷ Auto-demo</button>
         <button class="btn btn-secondary btn-sm btn-full mb-1"
                 title="Copia las etiquetas de referencia a los 6 perfiles, para los 10 hogares"
@@ -318,16 +330,18 @@ function renderWorkflowSidebar() {
   }
   if (!list || !bottom) return;
 
-  if (state.workflowStage === 'indicator-builder') {
-    list.innerHTML = INDICATOR_CATALOG.map(ind => `
-      <button class="sidebar-item ${state.selectedIndicatorId === ind.id ? 'active' : ''}" onclick="selectIndicator('${ind.id}')">
-        <span class="sidebar-dot" style="color:${ind.active ? '#16A34A' : '#9CA3AF'}">⬤</span>
-        <span class="sidebar-item-name">${ind.id} · ${escHtml(ind.name)}</span>
+  if (state.workflowStage === 'profile-builder') {
+    const definitions = readProfileDefinitions();
+    list.innerHTML = Object.values(definitions).map(def => `
+      <button class="sidebar-item ${state.selectedProfileDefinitionId === def.profileId ? 'active' : ''}" onclick="selectProfileDefinition('${def.profileId}')">
+        <span class="sidebar-dot" style="color:${def.metadata.color || '#64748B'}">⬤</span>
+        <span class="sidebar-item-name">${def.profileId} · ${escHtml(def.metadata.short || def.metadata.name)}</span>
+        <span class="sidebar-level-tag">${escHtml(def.status)}</span>
       </button>`).join('');
-    const active = INDICATOR_CATALOG.filter(i => i.status === 'active').length;
-    const drafts = Object.keys(getIndicatorDrafts()).length;
-    bottom.innerHTML = `<div class="catalog-summary"><div class="catalog-kpi"><b>${active}</b><span>activos</span></div><div class="catalog-kpi"><b>${drafts}</b><span>borradores</span></div><div class="catalog-kpi"><b>${INDICATOR_CATALOG.length - active}</b><span>retirado</span></div></div>
-      <div class="permission-note">${canEditIndicators() ? 'Puedes editar borradores.' : 'Vista de consulta: cambia al rol Metodología para editar.'}</div>`;
+    const approved = Object.values(definitions).filter(def => def.status === 'APPROVED').length;
+    bottom.innerHTML = `<div class="catalog-summary"><div class="catalog-kpi"><b>${Object.keys(definitions).length}</b><span>perfiles</span></div><div class="catalog-kpi"><b>${approved}</b><span>publicados</span></div></div>
+      <button class="btn btn-secondary btn-sm btn-full mb-1" ${canEditProfiles() ? '' : 'disabled'} onclick="createNewProfile()">＋ Nuevo perfil</button>
+      <div class="permission-note">${canEditProfiles() ? 'Puedes editar reglas y variables; los pesos se ajustan después.' : 'Vista de consulta: cambia al rol Diseño metodológico para editar.'}</div>`;
     return;
   }
 
@@ -418,7 +432,7 @@ function renderContentArea() {
   const area = document.getElementById('content-area');
   if (!area) return;
   area.className = '';
-  if (state.workflowStage === 'indicator-builder') { renderIndicatorBuilder(area); return; }
+  if (state.workflowStage === 'profile-builder') { renderProfileBuilder(area); return; }
   if (state.workflowStage === 'expert-consensus') { renderExpertConsensus(area); return; }
   if (state.workflowStage !== 'expert-evaluation') {
     renderFutureStage(area, WORKFLOW_STAGES.find(s => s.id === state.workflowStage));
@@ -524,7 +538,7 @@ function setExpertLabel(hhId, level) {
 
 function autoAssign(animated) {
   if (!canEvaluate()) { showNotification('Este rol no puede modificar evaluaciones.'); return; }
-  if (!state.hasGT) { alert('El dataset actual no tiene etiquetas de referencia.'); return; }
+  if (!state.hasGT || !profileHasReferenceLabels(state.activeProfile)) { alert('Este perfil no tiene etiquetas de referencia.'); return; }
   if (state._autoTimer) { clearTimeout(state._autoTimer); state._autoTimer = null; }
   if (animated) {
     _autoStep(0);
@@ -542,7 +556,7 @@ function autoAssignAllProfiles() {
   if (state._autoTimer) { clearTimeout(state._autoTimer); state._autoTimer = null; }
   for (const pid of Object.keys(state.profiles)) {
     for (const hh of HOUSEHOLDS) {
-      state.profiles[pid].expertLabels[hh.id] = hh.gt[pid];
+      if (Number.isInteger(hh.gt?.[pid])) state.profiles[pid].expertLabels[hh.id] = hh.gt[pid];
     }
   }
   renderAll();
@@ -552,7 +566,7 @@ function autoAssignAllProfiles() {
 function _autoStep(i) {
   if (i >= HOUSEHOLDS.length) { renderAll(); return; }
   const hh = HOUSEHOLDS[i];
-  ps().expertLabels[hh.id] = hh.gt[state.activeProfile];
+  if (Number.isInteger(hh.gt?.[state.activeProfile])) ps().expertLabels[hh.id] = hh.gt[state.activeProfile];
   state.activeHouseholdIndex = i;
   renderSidebar();
   renderHouseholdHeader();

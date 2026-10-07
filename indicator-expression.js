@@ -8,6 +8,7 @@ const BLOCK_DEFINITIONS = {
   indicatorRef:  {family:'input', label:'Indicator', arity:0},
   constant:      {family:'input', label:'Constant', arity:0},
   parameter:     {family:'input', label:'Parameter', arity:0},
+  weightedSum:   {family:'aggregate', label:'WEIGHTED SUM', arity:1, nary:true},
   add:           {family:'math', label:'ADD', arity:2, nary:true},
   subtract:      {family:'math', label:'SUBTRACT', arity:2},
   multiply:      {family:'math', label:'MULTIPLY', arity:2, nary:true},
@@ -62,6 +63,7 @@ function createExpressionNode(type) {
     : ['and','or','not'].includes(type) ? Array(definition.arity).fill('boolean')
     : Array(definition.arity).fill('number');
   node.operands = childTypes.map((childType, index) => makePlaceholder(childType, `${definition.label} ${index + 1}`));
+  if (type === 'weightedSum') node.weightKeys = node.operands.map((_, index) => `weight_${index + 1}`);
   if (type === 'mapCategory') { node.mapping = {}; node.defaultValue = ''; node.outputType = 'category'; }
   if (type === 'round') node.decimals = 0;
   return node;
@@ -124,7 +126,8 @@ function inferExpressionUnit(node) {
   const nestedErrors = child.flatMap(item => item.errors);
   const childUnits = child.map(item => item.unit);
   let own = {unit:UNIT_DIMENSIONLESS, warnings:[], errors:[]};
-  if (['add','subtract','sum','average','min','max'].includes(node.type)) own = inferAdditiveUnit(childUnits);
+  if (node.type === 'weightedSum') own = {unit:UNIT_DIMENSIONLESS, warnings:[], errors:[]};
+  else if (['add','subtract','sum','average','min','max'].includes(node.type)) own = inferAdditiveUnit(childUnits);
   else if (node.type === 'multiply' || node.type === 'scale') own = childUnits.slice(1).reduce((acc, unit) => {
     const next = inferMultiplyUnit(acc.unit, unit);
     return {unit:next.unit, warnings:[...acc.warnings, ...next.warnings], errors:[...acc.errors, ...next.errors]};
@@ -158,9 +161,10 @@ function validateExpression(expression, options = {}) {
     if (node.type === 'parameter' && !node.parameterId) errors.push(`${where}: el parámetro necesita un identificador.`);
 
     const types = operands.map(nodeDataType);
-    if (['add','subtract','multiply','divide','sum','average','min','max','abs','power','percent','clamp','normalize','round','scale'].includes(node.type) && types.some(type => !NUMERIC_TYPES.has(type))) {
+    if (['weightedSum','add','subtract','multiply','divide','sum','average','min','max','abs','power','percent','clamp','normalize','round','scale'].includes(node.type) && types.some(type => !NUMERIC_TYPES.has(type))) {
       errors.push(`${where} (${def.label}): solo acepta números.`);
     }
+    if (node.type === 'weightedSum' && (!Array.isArray(node.weightKeys) || node.weightKeys.length !== operands.length || new Set(node.weightKeys).size !== node.weightKeys.length)) errors.push(`${where} (WEIGHTED SUM): cada operando necesita una clave de peso única.`);
     if (['and','or','not'].includes(node.type) && types.some(type => type !== 'boolean')) errors.push(`${where} (${def.label}): requiere booleanos.`);
     if (['lt','lte','gt','gte','between','notBetween'].includes(node.type) && types.some(type => !NUMERIC_TYPES.has(type))) errors.push(`${where} (${def.label}): requiere valores numéricos.`);
     if (['eq','neq'].includes(node.type) && types.length === 2 && types[0] !== types[1] && !(types.every(type => NUMERIC_TYPES.has(type)))) errors.push(`${where} (${def.label}): compara tipos incompatibles.`);
@@ -190,6 +194,7 @@ function expressionToMath(node) {
   if (node.type === 'constant') return typeof node.value === 'string' ? `“${node.value}”` : String(node.value);
   if (node.type === 'parameter') return node.name || node.parameterId;
   const values = (node.operands || []).map(expressionToMath);
+  if (node.type === 'weightedSum') return `WEIGHTED_SUM(${values.map((value,index) => `${node.weightKeys?.[index] || `w${index+1}`} × ${value}`).join(' + ')})`;
   const infix = {add:' + ', subtract:' − ', multiply:' × ', divide:' ÷ ', power:' ^ ', lt:' < ', lte:' ≤ ', gt:' > ', gte:' ≥ ', eq:' == ', neq:' != ', and:' AND ', or:' OR '};
   if (infix[node.type]) return `(${values.join(infix[node.type])})`;
   if (node.type === 'if') return `IF ${values[0]} THEN ${values[1]} ELSE ${values[2]}`;
@@ -207,6 +212,7 @@ function expressionToNaturalLanguage(node) {
   const values = (node.operands || []).map(expressionToNaturalLanguage);
   const join = (verb, connector = ' y ') => `${verb} ${values.join(connector)}`;
   const phrases = {
+    weightedSum:()=>`Calcular la suma ponderada de ${values.join(', ')}; los pesos se ajustan en la fase experta`,
     add:()=>join('Sumar'), subtract:()=>`Restar ${values[1]} de ${values[0]}`, multiply:()=>join('Multiplicar'), divide:()=>`Dividir ${values[0]} entre ${values[1]}`,
     sum:()=>join('Sumar'), average:()=>join('Calcular la media de'), min:()=>join('Tomar el mínimo de'), max:()=>join('Tomar el máximo de'), abs:()=>`Tomar el valor absoluto de ${values[0]}`,
     power:()=>`Elevar ${values[0]} a ${values[1]}`, percent:()=>`Convertir ${values[0]} a porcentaje`,
