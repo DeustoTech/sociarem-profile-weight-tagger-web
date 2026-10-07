@@ -4,6 +4,9 @@
 
 const state = {
   username: '',
+  role: 'expert',
+  workflowStage: 'expert-evaluation',
+  selectedIndicatorId: 'I1',
   thresholds: {...DEFAULT_THRESHOLDS},
   activeProfile: 'P1',
   activeHouseholdIndex: 0,
@@ -27,15 +30,19 @@ const ps  = () => state.profiles[state.activeProfile];
 const pd  = () => PROFILES[state.activeProfile];
 const T   = () => state.thresholds;
 const hhA = () => HOUSEHOLDS[state.activeHouseholdIndex];
+const roleDef = () => DEMO_ROLES[state.role] || DEMO_ROLES.observer;
+
+const CONSENSUS_SUBMISSIONS_KEY = 'sociarem_consensus_submissions_v1';
+const CONSENSUS_CANDIDATES_KEY = 'sociarem_consensus_candidates_v1';
+
+function canEditIndicators() { return !!roleDef().canEditIndicators; }
+function canEvaluate() { return !!roleDef().canEvaluate; }
+function canFacilitate() { return !!roleDef().canFacilitate; }
 
 function currentWeights() {
   const s   = ps();
   const base = s.liveWeights || s.optimizedWeights || {...pd().init_weights};
-  const raw  = {};
-  for (const k of pd().weight_keys) raw[k] = Math.max(0.001, base[k] || 0.001);
-  const sum = Object.values(raw).reduce((a, b) => a + b, 0);
-  if (sum > 0) for (const k in raw) raw[k] /= sum;
-  return raw;
+  return normalizeWeights(base, pd().weight_keys);
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
@@ -64,6 +71,8 @@ function showLoginScreen() {
   const saved = localStorage.getItem('sociarem_username');
   const inp   = document.getElementById('login-username');
   if (saved && inp) inp.value = saved;
+  const role = document.getElementById('login-role');
+  if (role) role.value = localStorage.getItem('sociarem_role') || state.role;
   if (inp) inp.focus();
 }
 
@@ -84,6 +93,7 @@ function enterApp() {
   const passInp  = document.getElementById('login-password');
   const username = inp ? inp.value.trim() : '';
   const password = passInp ? passInp.value : '';
+  const selectedRole = document.getElementById('login-role')?.value || 'expert';
 
   if (!username) {
     showLoginError('Introduce un nombre de evaluador.');
@@ -97,7 +107,12 @@ function enterApp() {
   }
   hideLoginError();
   state.username = username;
+  state.role = DEMO_ROLES[selectedRole] ? selectedRole : 'observer';
+  state.workflowStage = state.role === 'methodology'
+    ? 'indicator-builder'
+    : state.role === 'facilitator' ? 'expert-consensus' : 'expert-evaluation';
   localStorage.setItem('sociarem_username', username);
+  localStorage.setItem('sociarem_role', state.role);
   if (passInp) passInp.value = '';
   document.getElementById('login-screen').setAttribute('hidden', '');
   document.getElementById('main-screen').removeAttribute('hidden');
@@ -112,6 +127,8 @@ function changeUser() {
   const inp = document.getElementById('login-username');
   const passInp = document.getElementById('login-password');
   if (inp) { inp.value = state.username || localStorage.getItem('sociarem_username') || ''; }
+  const role = document.getElementById('login-role');
+  if (role) role.value = state.role;
   if (passInp) passInp.value = '';
   if (passInp) passInp.focus(); else if (inp) inp.focus();
 }
@@ -120,6 +137,7 @@ function changeUser() {
 
 function buildMainScreen() {
   renderTopbar();
+  renderWorkflowBar();
   renderDataPanel();
   renderSidebar();
   renderAll();
@@ -127,6 +145,8 @@ function buildMainScreen() {
 
 function renderAll() {
   applySearch();
+  renderTopbar();
+  renderWorkflowBar();
   renderSidebar();
   renderHouseholdHeader();
   renderContentArea();
@@ -145,6 +165,41 @@ function renderTopbar() {
   }
   const userEl = document.getElementById('topbar-user');
   if (userEl) userEl.textContent = state.username;
+  const roleEl = document.getElementById('topbar-role');
+  if (roleEl) roleEl.textContent = roleDef().label;
+  const profileWrap = document.getElementById('profile-selector-wrap');
+  const profileContext = ['expert-evaluation', 'expert-consensus'].includes(state.workflowStage);
+  if (profileWrap) profileWrap.style.display = profileContext ? '' : 'none';
+  const refWrap = document.getElementById('ref-toggle-wrap');
+  if (refWrap) refWrap.style.display = state.workflowStage === 'expert-evaluation' ? '' : 'none';
+  const expertContext = state.workflowStage === 'expert-evaluation';
+  const dataPanel = document.getElementById('data-panel');
+  const search = document.getElementById('search-input');
+  if (dataPanel) dataPanel.style.display = expertContext ? '' : 'none';
+  if (search?.parentElement) search.parentElement.style.display = expertContext ? '' : 'none';
+  const searchHint = document.querySelector('.sidebar-search-hint');
+  if (searchHint) searchHint.style.display = expertContext ? '' : 'none';
+}
+
+function renderWorkflowBar() {
+  const bar = document.getElementById('workflow-bar');
+  if (!bar) return;
+  bar.innerHTML = WORKFLOW_STAGES.map((stage, index) => {
+    const active = stage.id === state.workflowStage;
+    const future = !stage.implemented;
+    const status = stage.state;
+    return `<button class="workflow-step ${active ? 'active' : ''} ${future ? 'future' : ''}"
+      onclick="switchWorkflowStage('${stage.id}')" title="${escHtml(stage.description)}">
+      <span class="workflow-step-number">${index}</span>
+      <span class="workflow-step-copy"><span class="workflow-step-title">${stage.short}</span><span class="workflow-step-state">${status}</span></span>
+    </button>`;
+  }).join('');
+}
+
+function switchWorkflowStage(stageId) {
+  if (!WORKFLOW_STAGES.some(s => s.id === stageId)) return;
+  state.workflowStage = stageId;
+  renderAll();
 }
 
 function switchProfile(pid) {
@@ -184,6 +239,10 @@ function onSearch(val) {
 
 function renderSidebar() {
   const el = document.getElementById('sidebar-profile-info');
+  if (state.workflowStage !== 'expert-evaluation') {
+    renderWorkflowSidebar();
+    return;
+  }
   if (el) { el.style.color = pd().color; el.textContent = `${state.activeProfile} · ${pd().short}`; }
 
   const list = document.getElementById('sidebar-list');
@@ -225,7 +284,7 @@ function renderSidebarBottom() {
   const nLabeled = Object.keys(ps().expertLabels).length;
   const nTotal   = HOUSEHOLDS.length;
   const pct      = Math.round(nLabeled / nTotal * 100);
-  const canOpt   = nLabeled >= 3 && ps().phase === 1;
+  const canOpt   = canEvaluate() && nLabeled >= 3 && ps().phase === 1;
   const inPhase2 = ps().phase === 2;
 
   el.innerHTML = `
@@ -236,16 +295,58 @@ function renderSidebarBottom() {
       <button class="btn btn-secondary btn-sm btn-full mb-1" onclick="backToPhase1()">← Volver a fase 1</button>
     ` : `
       ${state.hasGT ? `
-        <button class="btn btn-secondary btn-sm btn-full mb-1" onclick="autoAssign(true)">▷ Auto-demo</button>
+        <button class="btn btn-secondary btn-sm btn-full mb-1" ${canEvaluate() ? '' : 'disabled'} onclick="autoAssign(true)">▷ Auto-demo</button>
         <button class="btn btn-secondary btn-sm btn-full mb-1"
                 title="Copia las etiquetas de referencia a los 6 perfiles, para los 10 hogares"
-                onclick="autoAssignAllProfiles()">⚡ Asignar todo (6 perfiles)</button>
+                ${canEvaluate() ? '' : 'disabled'} onclick="autoAssignAllProfiles()">⚡ Asignar todo (6 perfiles)</button>
       ` : ''}
       ${canOpt
         ? `<button class="btn btn-accent2 btn-sm btn-full" onclick="runOptimization()">⟳ Optimizar pesos</button>`
         : `<button class="btn btn-secondary btn-sm btn-full" disabled title="Necesitas ≥3 etiquetas">⟳ Optimizar pesos</button>`}
     `}
   `;
+}
+
+function renderWorkflowSidebar() {
+  const info = document.getElementById('sidebar-profile-info');
+  const list = document.getElementById('sidebar-list');
+  const bottom = document.getElementById('sidebar-bottom');
+  const stage = WORKFLOW_STAGES.find(s => s.id === state.workflowStage);
+  if (info) {
+    info.style.color = 'var(--accent2)';
+    info.textContent = stage ? stage.short : 'Metodología';
+  }
+  if (!list || !bottom) return;
+
+  if (state.workflowStage === 'indicator-builder') {
+    list.innerHTML = INDICATOR_CATALOG.map(ind => `
+      <button class="sidebar-item ${state.selectedIndicatorId === ind.id ? 'active' : ''}" onclick="selectIndicator('${ind.id}')">
+        <span class="sidebar-dot" style="color:${ind.active ? '#16A34A' : '#9CA3AF'}">⬤</span>
+        <span class="sidebar-item-name">${ind.id} · ${escHtml(ind.name)}</span>
+      </button>`).join('');
+    const active = INDICATOR_CATALOG.filter(i => i.status === 'active').length;
+    const drafts = Object.keys(getIndicatorDrafts()).length;
+    bottom.innerHTML = `<div class="catalog-summary"><div class="catalog-kpi"><b>${active}</b><span>activos</span></div><div class="catalog-kpi"><b>${drafts}</b><span>borradores</span></div><div class="catalog-kpi"><b>${INDICATOR_CATALOG.length - active}</b><span>retirado</span></div></div>
+      <div class="permission-note">${canEditIndicators() ? 'Puedes editar borradores.' : 'Vista de consulta: cambia al rol Metodología para editar.'}</div>`;
+    return;
+  }
+
+  if (state.workflowStage === 'expert-consensus') {
+    const submissions = getConsensusSubmissions().filter(s => s.profile === state.activeProfile);
+    list.innerHTML = Object.entries(PROFILES).map(([pid, def]) => {
+      const n = getConsensusSubmissions().filter(s => s.profile === pid).length;
+      return `<button class="sidebar-item ${state.activeProfile === pid ? 'active' : ''}" onclick="switchProfile('${pid}')">
+        <span class="sidebar-dot" style="color:${def.color}">⬤</span><span class="sidebar-item-name">${pid} · ${def.short}</span>
+        <span class="sidebar-level-tag">${n}</span>
+      </button>`;
+    }).join('');
+    bottom.innerHTML = `<div class="catalog-summary"><b>${submissions.length}</b> propuestas en ${state.activeProfile}</div>
+      <div class="permission-note">${canFacilitate() ? 'Puedes guardar una versión candidata.' : 'La facilitación guarda la candidatura; los expertos aportan propuestas.'}</div>`;
+    return;
+  }
+
+  list.innerHTML = (stage?.outputs || []).map(output => `<div class="sidebar-item"><span class="sidebar-dot" style="color:#9CA3AF">○</span><span class="sidebar-item-name">${escHtml(output)}</span></div>`).join('');
+  bottom.innerHTML = `<div class="permission-note">Fase visible para explicar el recorrido completo. Todavía no modifica datos.</div>`;
 }
 
 function backToPhase1() {
@@ -259,9 +360,16 @@ function backToPhase1() {
 // ─── Cabecera del hogar ───────────────────────────────────────────────────────
 
 function renderHouseholdHeader() {
-  const hh  = hhA();
   const el  = document.getElementById('household-header');
   if (!el) return;
+  if (state.workflowStage !== 'expert-evaluation') {
+    const stage = WORKFLOW_STAGES.find(s => s.id === state.workflowStage);
+    el.innerHTML = `<div class="stage-header"><div><div class="hh-id">FASE ${WORKFLOW_STAGES.findIndex(s => s.id === state.workflowStage)}</div>
+      <div class="hh-name">${escHtml(stage?.title || '')}</div></div>
+      <span class="stage-status ${stage?.implemented ? 'prototype' : 'future'}">${escHtml(stage?.state || '')}</span></div>`;
+    return;
+  }
+  const hh  = hhA();
   const pos   = state.filteredIndices.indexOf(state.activeHouseholdIndex);
   const total = state.filteredIndices.length;
 
@@ -310,6 +418,12 @@ function renderContentArea() {
   const area = document.getElementById('content-area');
   if (!area) return;
   area.className = '';
+  if (state.workflowStage === 'indicator-builder') { renderIndicatorBuilder(area); return; }
+  if (state.workflowStage === 'expert-consensus') { renderExpertConsensus(area); return; }
+  if (state.workflowStage !== 'expert-evaluation') {
+    renderFutureStage(area, WORKFLOW_STAGES.find(s => s.id === state.workflowStage));
+    return;
+  }
   if (ps().phase === 2) renderPhase2(area);
   else                  renderPhase1(area);
 }
@@ -339,13 +453,18 @@ function renderPhase1(area) {
     const isActive = lbl === lvl.value;
     return `<button class="ordinal-btn ${isActive ? 'ordinal-active' : ''}"
                     style="${isActive ? `background:${lvl.color};border-color:${lvl.color};color:#fff` : ''}"
-                    onclick="setExpertLabel('${hh.id}',${lvl.value})">
+                    ${canEvaluate() ? `onclick="setExpertLabel('${hh.id}',${lvl.value})"` : 'disabled'}>
               <span class="ordinal-num">${lvl.value}</span>
               <span class="ordinal-lbl">${lvl.short}</span>
             </button>`;
   }).join('');
 
   area.innerHTML = `
+    <div class="phase-intro">
+      <div><b>Evaluación experta individual</b> · ${escHtml(MODEL_INFO.profileModel)}</div>
+      <div>${state.activeProfile === 'P5' ? '<b>Atención:</b> P5 conserva I19 por compatibilidad con el modelo provisional; el catálogo V3.0 lo marca como retirado.' : 'Esta pantalla recoge propuestas individuales; el consenso se construye en la fase siguiente.'}</div>
+      ${canEvaluate() ? '' : '<div class="permission-note">Este rol puede consultar, pero no etiquetar.</div>'}
+    </div>
     <div class="progress-card">
       <div class="section-heading" style="margin-bottom:6px">Progreso de etiquetado</div>
       <div class="progress-grid">${progressHtml}</div>
@@ -388,6 +507,7 @@ function indicatorCard(k, hh) {
 // ─── Etiquetado ordinal ───────────────────────────────────────────────────────
 
 function setExpertLabel(hhId, level) {
+  if (!canEvaluate()) { showNotification('Este rol no puede modificar evaluaciones.'); return; }
   const wasUnlabeled = ps().expertLabels[hhId] === undefined;
   ps().expertLabels[hhId] = level;
 
@@ -403,6 +523,7 @@ function setExpertLabel(hhId, level) {
 // ─── Auto-asignación ─────────────────────────────────────────────────────────
 
 function autoAssign(animated) {
+  if (!canEvaluate()) { showNotification('Este rol no puede modificar evaluaciones.'); return; }
   if (!state.hasGT) { alert('El dataset actual no tiene etiquetas de referencia.'); return; }
   if (state._autoTimer) { clearTimeout(state._autoTimer); state._autoTimer = null; }
   if (animated) {
@@ -416,6 +537,7 @@ function autoAssign(animated) {
 // Asigna las etiquetas de referencia a TODOS los perfiles (P1–P6), no solo
 // al perfil activo. Pensado para preparar la demo de un solo golpe.
 function autoAssignAllProfiles() {
+  if (!canEvaluate()) { showNotification('Este rol no puede modificar evaluaciones.'); return; }
   if (!state.hasGT) { alert('El dataset actual no tiene etiquetas de referencia.'); return; }
   if (state._autoTimer) { clearTimeout(state._autoTimer); state._autoTimer = null; }
   for (const pid of Object.keys(state.profiles)) {
@@ -441,6 +563,7 @@ function _autoStep(i) {
 // ─── Optimización ─────────────────────────────────────────────────────────────
 
 function runOptimization() {
+  if (!canEvaluate()) { showNotification('Este rol no puede optimizar pesos.'); return; }
   if (Object.keys(ps().expertLabels).length < 3) {
     alert('Necesitas al menos 3 hogares etiquetados para optimizar.');
     return;
@@ -479,15 +602,15 @@ function renderPhase2(area) {
     const curW     = w[k] || 0;
     const initW    = profDef.init_weights[k];
     const liveRaw  = ps().liveWeights ? ps().liveWeights[k] : curW * 100;
-    const sliderVal = Math.max(0.1, Math.round(liveRaw * 10) / 10);
+    const sliderVal = Math.max(0, Math.round(liveRaw * 10) / 10);
     const delta    = curW - initW;
     const deltaStr = delta >= 0 ? `+${(delta*100).toFixed(1)}%` : `${(delta*100).toFixed(1)}%`;
     const dColor   = Math.abs(delta) < 0.005 ? '#9CA3AF' : delta > 0 ? '#D97706' : '#6B7280';
-    return `<div class="weight-row-c">
+    return `<div class="weight-row-c ${curW === 0 ? 'excluded' : ''}" id="wrow-${k}">
       <span class="badge badge-sec wk">${k}</span>
       <span class="wname">${def.name}</span>
       <input type="range" class="weight-slider wslider" data-key="${k}"
-             min="0.1" max="100" step="0.1" value="${sliderVal}" oninput="onWeightChange()">
+             min="0" max="100" step="0.1" value="${sliderVal}" ${canEvaluate() ? 'oninput="onWeightChange()"' : 'disabled'}>
       <span class="wval" id="wval-${k}">${(curW*100).toFixed(1)}%</span>
       <span class="wdelta" id="wdelta-${k}" style="color:${dColor}">${deltaStr}</span>
     </div>`;
@@ -500,6 +623,11 @@ function renderPhase2(area) {
   const versionsHtml = buildWeightVersionPanel();
 
   area.innerHTML = `
+    <div class="phase-intro">
+      <div><b>Ajuste de pesos · propuesta individual</b></div>
+      <div>Un peso de 0 excluye el indicador del cálculo de este perfil. El resto se normaliza automáticamente al 100%.</div>
+      ${canEvaluate() ? '' : '<div class="permission-note">Este rol puede consultar, pero no cambiar ni enviar pesos.</div>'}
+    </div>
     <div class="phase2-layout">
 
       <!-- Panel izquierdo -->
@@ -550,6 +678,7 @@ function renderPhase2(area) {
           <label class="export-gt-label">
             <input type="checkbox" id="export-gt"> Incluir ref.
           </label>
+          <button class="btn btn-accent2 btn-sm" ${canEvaluate() ? '' : 'disabled'} onclick="submitExpertProposal()">Enviar a consenso →</button>
         </div>
 
       </div>
@@ -600,6 +729,124 @@ function compactTableRow(hh, w) {
   </div>`;
 }
 
+// ─── Fase 2 · Consenso experto ───────────────────────────────────────────────
+
+function getConsensusSubmissions() {
+  try { return JSON.parse(localStorage.getItem(CONSENSUS_SUBMISSIONS_KEY) || '[]'); } catch (e) { return []; }
+}
+
+function persistConsensusSubmissions(items) {
+  localStorage.setItem(CONSENSUS_SUBMISSIONS_KEY, JSON.stringify(items));
+}
+
+function submitExpertProposal() {
+  if (!canEvaluate()) { showNotification('Solo el rol Persona experta puede enviar propuestas.'); return; }
+  const weights = currentWeights();
+  const metrics = computeOrdinalMetrics(weights, state.activeProfile, ps().expertLabels, T());
+  const items = getConsensusSubmissions().filter(item => !(item.profile === state.activeProfile && item.author === state.username));
+  items.push({
+    id:`proposal_${Date.now()}`, profile:state.activeProfile, author:state.username,
+    createdAt:new Date().toISOString(), weights, metrics, synthetic:false,
+  });
+  persistConsensusSubmissions(items);
+  showNotification(`Propuesta de ${state.activeProfile} enviada al espacio de consenso.`);
+  switchWorkflowStage('expert-consensus');
+}
+
+function loadSyntheticConsensus() {
+  const items = getConsensusSubmissions().filter(item => !(item.profile === state.activeProfile && item.synthetic));
+  const keys = pd().weight_keys;
+  const names = ['Ejemplo A', 'Ejemplo B', 'Ejemplo C'];
+  const factors = [
+    keys.map((_, i) => i % 3 === 0 ? 1.35 : 0.9),
+    keys.map((_, i) => i % 4 === 1 ? 0 : 1.15),
+    keys.map((_, i) => i % 2 === 0 ? 0.8 : 1.25),
+  ];
+  factors.forEach((factor, n) => {
+    const raw = Object.fromEntries(keys.map((key, i) => [key, pd().init_weights[key] * factor[i]]));
+    items.push({id:`synthetic_${state.activeProfile}_${n}`, profile:state.activeProfile, author:names[n], createdAt:new Date(Date.now() - n * 3600000).toISOString(), weights:normalizeWeights(raw, keys), metrics:null, synthetic:true});
+  });
+  persistConsensusSubmissions(items);
+  showNotification('Se han cargado 3 propuestas sintéticas, claramente marcadas.');
+  renderAll();
+}
+
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function consensusRows(submissions) {
+  return pd().weight_keys.map(key => {
+    const values = submissions.map(s => Number(s.weights[key]) || 0);
+    const min = Math.min(...values), max = Math.max(...values);
+    return {key, min, max, median:median(values), spread:max - min, zeros:values.filter(v => v === 0).length};
+  });
+}
+
+function renderExpertConsensus(area) {
+  const submissions = getConsensusSubmissions().filter(item => item.profile === state.activeProfile);
+  if (!submissions.length) {
+    area.innerHTML = `<div class="future-stage"><div class="future-hero"><h2>Consenso experto · ${state.activeProfile}</h2>
+      <p>Aún no hay propuestas. Envía pesos desde la fase experta o carga ejemplos sintéticos para enseñar la reunión sin atribuir decisiones a personas reales.</p>
+      <div class="builder-actions"><button class="btn btn-secondary" onclick="switchWorkflowStage('expert-evaluation')">← Volver a expertos</button>
+      <button class="btn btn-accent2" onclick="loadSyntheticConsensus()">Cargar 3 propuestas sintéticas</button></div></div></div>`;
+    return;
+  }
+  const rows = consensusRows(submissions);
+  const candidate = normalizeWeights(Object.fromEntries(rows.map(r => [r.key, r.median])), pd().weight_keys);
+  const high = rows.filter(r => r.spread >= 0.15).length;
+  const table = rows.map(r => {
+    const cls = r.spread >= 0.15 ? 'dispersion-high' : r.spread >= 0.07 ? 'dispersion-medium' : 'dispersion-low';
+    return `<tr><td><b>${r.key}</b> · ${escHtml(INDICATOR_DEFS[r.key]?.name || r.key)}</td><td>${(r.min*100).toFixed(1)}%</td><td><b>${(candidate[r.key]*100).toFixed(1)}%</b></td><td>${(r.max*100).toFixed(1)}%</td><td class="${cls}">${(r.spread*100).toFixed(1)} pp</td><td>${r.zeros}/${submissions.length}</td></tr>`;
+  }).join('');
+  const submissionList = submissions.map(s => `<div class="submission-item"><span><b>${escHtml(s.author)}</b>${s.synthetic ? ' · muestra sintética' : ''}</span><small>${new Date(s.createdAt).toLocaleString()}</small></div>`).join('');
+
+  area.innerHTML = `
+    <div class="demo-note"><strong>Prototipo de deliberación:</strong> la mediana es un punto de partida, no una decisión automática. Los desacuerdos y pesos cero permanecen visibles.</div>
+    <div class="consensus-overview">
+      <div class="consensus-kpi"><span>Propuestas</span><b>${submissions.length}</b></div>
+      <div class="consensus-kpi"><span>Perfil</span><b>${state.activeProfile}</b></div>
+      <div class="consensus-kpi"><span>Dispersión alta</span><b>${high}</b></div>
+      <div class="consensus-kpi"><span>Método candidato</span><b>Mediana</b></div>
+    </div>
+    <div class="consensus-grid">
+      <section class="consensus-card"><h3>Comparación de pesos</h3>
+        <table class="consensus-table"><thead><tr><th>Indicador</th><th>Mín.</th><th>Candidata</th><th>Máx.</th><th>Dispersión</th><th>Ceros</th></tr></thead><tbody>${table}</tbody></table>
+        <div class="builder-actions"><button class="btn btn-secondary btn-sm" onclick="loadSyntheticConsensus()">Recargar muestras</button>
+        <button class="btn btn-accent2 btn-sm" ${canFacilitate() ? '' : 'disabled'} onclick="saveConsensusCandidate()">Guardar candidata para deliberación</button></div>
+      </section>
+      <aside><section class="consensus-card"><h3>Propuestas recibidas</h3><div class="submission-list">${submissionList}</div></section>
+        <section class="consensus-card" style="margin-top:12px"><h3>Salvaguardas</h3><ul class="guardrail-list"><li>No ocultar desacuerdos tras un promedio.</li><li>Revisar los indicadores con dispersión alta.</li><li>No usar participación comunitaria como mérito.</li><li>Registrar motivación y aprobación humana.</li></ul></section></aside>
+    </div>`;
+}
+
+function saveConsensusCandidate() {
+  if (!canFacilitate()) { showNotification('Solo Facilitación puede guardar la candidata.'); return; }
+  const submissions = getConsensusSubmissions().filter(item => item.profile === state.activeProfile);
+  if (!submissions.length) return;
+  const rows = consensusRows(submissions);
+  const candidate = normalizeWeights(Object.fromEntries(rows.map(r => [r.key, r.median])), pd().weight_keys);
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem(CONSENSUS_CANDIDATES_KEY) || '{}'); } catch (e) { all = {}; }
+  all[state.activeProfile] = {weights:candidate, method:'Mediana normalizada', submissionCount:submissions.length, status:'Pendiente de deliberación', savedBy:state.username, createdAt:new Date().toISOString()};
+  localStorage.setItem(CONSENSUS_CANDIDATES_KEY, JSON.stringify(all));
+  showNotification(`Candidata ${state.activeProfile} guardada como pendiente de deliberación.`);
+}
+
+function renderFutureStage(area, stage) {
+  if (!stage) return;
+  const cards = [
+    ['Resultado esperado', stage.outputs],
+    ['Quién participa', stage.actors],
+    ['Salvaguardas', stage.safeguards],
+  ];
+  area.innerHTML = `<div class="future-stage"><div class="future-hero"><span class="stage-status future">Roadmap</span><h2>${escHtml(stage.title)}</h2><p>${escHtml(stage.description)}</p></div>
+    <div class="future-grid">${cards.map(([title, items]) => `<section class="future-card"><h3>${title}</h3><ul>${items.map(i => `<li>${escHtml(i)}</li>`).join('')}</ul></section>`).join('')}</div>
+    <div class="permission-note" style="margin-top:12px">Esta fase se muestra para explicar el proceso completo, pero aún no permite introducir ni aprobar datos.</div></div>`;
+}
+
 // ─── Versiones de pesos ───────────────────────────────────────────────────────
 
 const WEIGHT_VERSIONS_KEY = 'sociarem_weight_versions_v1';
@@ -634,6 +881,7 @@ function buildWeightVersionPanel() {
 }
 
 function saveWeightVersion() {
+  if (!canEvaluate()) { showNotification('Este rol no puede guardar versiones.'); return; }
   const p       = state.activeProfile;
   const user    = state.username;
   const w       = currentWeights();
@@ -665,6 +913,7 @@ function loadSelectedVersion() {
 }
 
 function deleteSelectedVersion() {
+  if (!canEvaluate()) { showNotification('Este rol no puede eliminar versiones.'); return; }
   const sel  = document.getElementById('version-select');
   if (!sel || !sel.value) { showNotification('Selecciona una versión.'); return; }
   const user = state.username, p = state.activeProfile;
@@ -684,13 +933,19 @@ function exportWeightVersions() {
 // ─── Actualizaciones en vivo (sliders) ───────────────────────────────────────
 
 function onWeightChange() {
+  if (!canEvaluate()) return;
   const sliders = document.querySelectorAll('.weight-slider');
   if (!sliders.length) return;
   const raw = {};
-  sliders.forEach(s => raw[s.dataset.key] = parseFloat(s.value) || 0.1);
-  const sum  = Object.values(raw).reduce((a, b) => a + b, 0) || 1;
-  const norm = {};
-  for (const k in raw) norm[k] = raw[k] / sum;
+  sliders.forEach(s => raw[s.dataset.key] = Math.max(0, Number(s.value) || 0));
+  const sum  = Object.values(raw).reduce((a, b) => a + b, 0);
+  if (sum <= 0) {
+    const first = sliders[0];
+    first.value = '0.1';
+    raw[first.dataset.key] = 0.1;
+    showNotification('Debe quedar al menos un indicador con peso mayor que cero.');
+  }
+  const norm = normalizeWeights(raw, pd().weight_keys);
   ps().liveWeights = raw;
   updateLiveElements(norm);
 }
@@ -728,6 +983,8 @@ function updateLiveElements(w) {
     if (wv) wv.textContent = (curW * 100).toFixed(1) + '%';
     const wd = document.getElementById(`wdelta-${k}`);
     if (wd) { wd.textContent = dStr; wd.style.color = dColor; }
+    const row = document.getElementById(`wrow-${k}`);
+    if (row) row.classList.toggle('excluded', curW === 0);
   }
 
   // Tabla compacta
@@ -756,12 +1013,14 @@ function updateLiveElements(w) {
 }
 
 function resetToOptimized() {
+  if (!canEvaluate()) return;
   if (ps().optimizedWeights) {
     ps().liveWeights = Object.fromEntries(pd().weight_keys.map(k => [k, (ps().optimizedWeights[k] || 0) * 100]));
     renderContentArea();
   }
 }
 function resetToInit() {
+  if (!canEvaluate()) return;
   ps().liveWeights = Object.fromEntries(pd().weight_keys.map(k => [k, (pd().init_weights[k] || 0) * 100]));
   renderContentArea();
 }
@@ -971,17 +1230,14 @@ function exportWeightsJson() {
   for (const pid of Object.keys(PROFILES)) {
     const pS = state.profiles[pid], pD = PROFILES[pid];
     const base = pS.liveWeights || pS.optimizedWeights || {...pD.init_weights};
-    const raw  = {};
-    for (const k of pD.weight_keys) raw[k] = Math.max(0.001, base[k] || 0.001);
-    const sum  = Object.values(raw).reduce((a, b) => a + b, 0);
-    const wn   = {};
-    for (const k in raw) wn[k] = raw[k] / sum;
+    const wn = normalizeWeights(base, pD.weight_keys);
     data[pid] = {weights: wn, createdAt: new Date().toISOString()};
   }
   download('sociarem_pesos_todos.json', JSON.stringify(data, null, 2), 'application/json');
 }
 
 function importWeightsJson(event) {
+  if (!canEvaluate()) { showNotification('Este rol no puede importar pesos.'); event.target.value = ''; return; }
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();

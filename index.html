@@ -15,10 +15,21 @@
          src="https://sociarem.eu/_next/image?url=%2Fassets%2Fsociarem-icon.png&amp;w=1080&amp;q=75">
     <div class="login-logo">SOCIAREM</div>
     <div class="login-sub">Piloto Messina · PoC de vulnerabilidad energética</div>
+    <div class="demo-banner">
+      <strong>Entorno de demostración</strong>
+      <span>Datos sintéticos · sin autenticación real</span>
+    </div>
     <label class="login-label" for="login-username">Evaluador</label>
     <input type="text" id="login-username" class="login-input"
            placeholder="Nombre o código de evaluador"
            onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
+    <label class="login-label" for="login-role">Rol de demostración</label>
+    <select id="login-role" class="login-input login-select">
+      <option value="expert">Persona experta</option>
+      <option value="methodology">Diseño metodológico</option>
+      <option value="facilitator">Facilitación del consenso</option>
+      <option value="observer">Observación y auditoría</option>
+    </select>
     <label class="login-label" for="login-password">Contraseña</label>
     <input type="password" id="login-password" class="login-input"
            placeholder="Contraseña de acceso"
@@ -33,11 +44,14 @@
 
   <!-- Topbar -->
   <div id="topbar">
-    <span class="topbar-label">Perfil activo:</span>
-    <div id="profile-buttons">
-      <!-- Generado por renderTopbar() -->
+    <div id="profile-selector-wrap">
+      <span class="topbar-label">Perfil activo:</span>
+      <div id="profile-buttons">
+        <!-- Generado por renderTopbar() -->
+      </div>
     </div>
     <div class="topbar-actions">
+      <span id="topbar-role" class="role-badge"></span>
       <div class="topbar-user-info">
         <span class="topbar-user-label">Usuario:</span>
         <span id="topbar-user"></span>
@@ -49,6 +63,11 @@
       </label>
     </div>
   </div>
+
+  <!-- Roadmap global de la metodología -->
+  <nav id="workflow-bar" aria-label="Fases de la metodología">
+    <!-- Generado por renderWorkflowBar() -->
+  </nav>
 
   <!-- Disposición principal: sidebar + área de trabajo -->
   <div id="app-layout">
@@ -122,6 +141,12 @@
 <!-- Scripts: SheetJS, luego datos, luego app -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="data.js"></script>
+<script src="indicator-units.js"></script>
+<script src="indicator-expression.js"></script>
+<script src="indicator-evaluator.js"></script>
+<script src="indicator-dependencies.js"></script>
+<script src="indicator-serialization.js"></script>
 <script src="app.js"></script>
+<script src="indicator-builder.js"></script>
 </body>
 </html>
