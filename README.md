@@ -63,7 +63,7 @@ Estos roles solo deshabilitan controles en el navegador. No son autenticación n
 - P5 muestra la cautela de versión de I19: aparece en D1.5, pero el catálogo V3.0 lo marca retirado.
 - Permite crear perfiles adicionales, guardarlos como `DRAFT`, enviarlos a `REVIEW` y publicarlos para expertos.
 - Importa y exporta definiciones JSON con `schemaVersion: 2`.
-- La pantalla de edición usa dos columnas, presenta la regla completa como fórmula lógica monoespaciada (`I2 OR (I1 AND I3)`) y muestra debajo todas sus condiciones como tarjetas compactas; fuentes, versiones y cautelas viven en una pestaña metodológica separada.
+- La pantalla de edición usa dos columnas, presenta la regla completa como fórmula lógica monoespaciada (`I2 OR (I1 AND I3)`) y conserva debajo un árbol jerárquico completo ROOT → AND/OR/NOT → indicadores. La preview muestra los diez hogares simultáneamente en una cuadrícula 5×2, sin scroll interno. Fuentes, versiones y cautelas viven en una pestaña metodológica separada.
 
 #### Modelo de perfil
 

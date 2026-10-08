@@ -37,6 +37,7 @@ Base conservada: `main` en el commit previo a esta entrega.
 30. **Soporte multidioma.** Se añade selector persistente ES/IT/EN en el acceso y en la aplicación, con navegación y constructor de perfiles traducidos.
 31. **Contenido metodológico realmente localizado.** Italiano e inglés incluyen ahora nombres y criterios de los 25 indicadores, descripciones y preguntas P1–P6, reglas activadoras, hogares, fuentes, justificaciones, cautelas y estados; las pruebas rechazan regresiones que vuelvan a mostrar castellano en esas vistas.
 32. **Fórmula lógica y condiciones completas.** Se elimina la dependencia visual del nodo ROOT: la regla vuelve a mostrarse como expresión monoespaciada (`I2 OR (I1 AND I3)`) y todas las condiciones aparecen simultáneamente como tarjetas seleccionables.
+33. **Árbol lógico restaurado y preview completa.** La fórmula textual se mantiene, pero vuelve el esquema jerárquico completo con ROOT, operadores conectados e indicadores; los diez hogares se muestran a la vez en una cuadrícula 5×2 sin scroll interno.
 
 ## Cómo volver atrás
 

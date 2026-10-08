@@ -37,7 +37,7 @@ function renderProfileBuilder(area) {
   const editable = canEditProfiles();
   const validation = validateProfileDefinition(definition);
   const weights = initialProfileWeights(definition.prioritizationExpression);
-  const activationConditions = renderActivationConditionCards(definition.activationExpression, [], editable);
+  const activationDiagram = renderActivationDiagram(definition.activationExpression, [], editable, true);
   const design = `<div class="profile-dashboard-grid">
     <section class="builder-card compact-card">
       <div class="builder-section-heading"><b>${tr('builder.identity')}</b><span class="status-pill">${escHtml(translatedLifecycleStatus(definition.status))}</span></div>
@@ -70,7 +70,7 @@ function renderProfileBuilder(area) {
         <div class="logic-buttons"><button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('and')">AND</button><button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('or')">OR</button><button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('not')">NOT</button></div>
       </div>
       <div class="profile-rule-console"><span>${tr('builder.logicFormula')}</span><code>${escHtml(profileActivationFormula(definition.activationExpression))}</code></div>
-      <div class="profile-condition-grid">${activationConditions}</div>
+      <div class="profile-logic-diagram">${activationDiagram}</div>
     </section>
 
     <section class="builder-card compact-card profile-variables-card">
@@ -168,19 +168,29 @@ function profileActivationFormula(node, isRoot = true) {
   return expressionToMath(node);
 }
 
-function renderActivationConditionCards(node, path, editable) {
+function renderActivationDiagram(node, path, editable, isRoot = false) {
   if (!node) return '';
-  if (node.type !== 'indicatorRef') return (node.operands || []).map((child,index) => renderActivationConditionCards(child,[...path,index],editable)).join('');
   const selected = JSON.stringify(path) === JSON.stringify(profileBuilderState.selectedActivationPath);
+  if (node.type !== 'indicatorRef') {
+    const operator = node.type === 'and' ? 'AND' : node.type === 'or' ? 'OR' : node.type === 'not' ? 'NOT' : node.type.toUpperCase();
+    const children = (node.operands || []).map((child,index) => `<div class="profile-logic-branch">${renderActivationDiagram(child,[...path,index],editable,false)}</div>`).join('');
+    return `<div class="profile-logic-subtree">
+      <div class="profile-logic-operator ${selected ? 'selected' : ''}" onclick="profileSelectActivationNode(${profilePathAttribute(path)})">
+        ${isRoot ? '<span>ROOT</span>' : ''}<b>${operator}</b>
+        ${editable && path.length ? `<button onclick="event.stopPropagation();profileRemoveActivationNode(${profilePathAttribute(path)})">×</button>` : ''}
+      </div>
+      <div class="profile-logic-children">${children}</div>
+    </div>`;
+  }
   const indicator = INDICATOR_DEFS[node.indicatorId];
   const name = translatedIndicatorName(node.indicatorId,indicator?.name || node.label || node.indicatorId);
   const criterion = translatedIndicatorCriterion(node.indicatorId,T(),indicator?.note(T()) || '');
-  return `<button class="profile-condition-card ${selected ? 'selected' : ''}" onclick="profileSelectActivationNode(${profilePathAttribute(path)})">
+  return `<div class="profile-logic-indicator ${selected ? 'selected' : ''}" onclick="profileSelectActivationNode(${profilePathAttribute(path)})">
     <span class="badge badge-pri">${node.indicatorId}</span>
     <span class="profile-condition-copy"><b>${escHtml(name)}</b><small>${escHtml(criterion)}</small></span>
     <span class="profile-condition-true">TRUE</span>
     <span class="profile-condition-remove ${editable && path.length ? '' : 'disabled'}" onclick="event.stopPropagation();profileRemoveActivationNode(${profilePathAttribute(path)})">×</span>
-  </button>`;
+  </div>`;
 }
 
 function renderProfileVariables(definition, weights, editable) {
