@@ -56,6 +56,20 @@ assert.match(renderedProfileBuilder, /Variables que ponderarán/);
 assert.equal(vm.runInContext(`Object.keys(I18N_MESSAGES.es).every(key => key in I18N_MESSAGES.it && key in I18N_MESSAGES.en)`, context), true);
 assert.equal(vm.runInContext(`(setLanguage('it'), tr('builder.title'))`, context), 'Costruzione dei profili');
 assert.equal(vm.runInContext(`(setLanguage('en'), tr('builder.title'))`, context), 'Profile construction');
+const italianBuilder = vm.runInContext(`(() => { setLanguage('it'); profileBuilderState.activeTab='design'; const area={innerHTML:''}; renderProfileBuilder(area); return area.innerHTML; })()`, context);
+assert.match(italianBuilder, /Costruzione dei profili/);
+assert.match(italianBuilder, /Reddito netto equivalente/);
+assert.match(italianBuilder, /Nucleo 1/);
+assert.doesNotMatch(italianBuilder, /Construcción de perfiles|Renta neta equivalente|Hogar 1/);
+const englishBuilder = vm.runInContext(`(() => { setLanguage('en'); profileBuilderState.activeTab='design'; const area={innerHTML:''}; renderProfileBuilder(area); return area.innerHTML; })()`, context);
+assert.match(englishBuilder, /Profile construction/);
+assert.match(englishBuilder, /Equivalent net income/);
+assert.match(englishBuilder, /Household 1/);
+assert.doesNotMatch(englishBuilder, /Construcción de perfiles|Renta neta equivalente|Hogar 1/);
+const englishMethodology = vm.runInContext(`(() => { profileBuilderState.activeTab='method'; const area={innerHTML:''}; renderProfileBuilder(area); return area.innerHTML; })()`, context);
+assert.match(englishMethodology, /sections 4\.2\.1/);
+assert.match(englishMethodology, /Structurally insufficient resources|insufficient income/);
+assert.doesNotMatch(englishMethodology, /secciones 4\.2\.1|Insuficiencia estructural/);
 assert.deepEqual(localScripts, [
   'i18n.js','data.js','indicator-units.js','indicator-expression.js','indicator-evaluator.js',
   'indicator-dependencies.js','indicator-serialization.js','profile-definitions.js','app.js','profile-builder.js',

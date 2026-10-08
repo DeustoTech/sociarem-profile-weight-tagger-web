@@ -261,7 +261,7 @@ function renderSidebar() {
     renderWorkflowSidebar();
     return;
   }
-  if (el) { el.style.color = pd().color; el.textContent = `${state.activeProfile} · ${pd().short}`; }
+  if (el) { el.style.color = pd().color; el.textContent = `${state.activeProfile} · ${translatedProfileField(state.activeProfile,'short',pd().short)}`; }
 
   const list = document.getElementById('sidebar-list');
   if (!list) return;
@@ -342,7 +342,7 @@ function renderWorkflowSidebar() {
       <button class="sidebar-item ${state.selectedProfileDefinitionId === def.profileId ? 'active' : ''}" onclick="selectProfileDefinition('${def.profileId}')">
         <span class="sidebar-dot" style="color:${def.metadata.color || '#64748B'}">⬤</span>
         <span class="sidebar-item-name">${def.profileId} · ${escHtml(translatedProfileField(def.profileId,'short',def.metadata.short || def.metadata.name))}</span>
-        <span class="sidebar-level-tag">${escHtml(def.status)}</span>
+        <span class="sidebar-level-tag">${escHtml(translatedLifecycleStatus(def.status))}</span>
       </button>`).join('');
     const approved = Object.values(definitions).filter(def => def.status === 'APPROVED').length;
     bottom.innerHTML = `<div class="catalog-summary"><div class="catalog-kpi"><b>${Object.keys(definitions).length}</b><span>${tr('builder.profiles')}</span></div><div class="catalog-kpi"><b>${approved}</b><span>${tr('builder.published')}</span></div></div>
@@ -494,7 +494,7 @@ function renderPhase1(area) {
     <div class="indicator-grid mb-3">${cards}</div>
 
     <div class="validation-card">
-      <div class="validation-question">${profDef.question}</div>
+      <div class="validation-question">${escHtml(translatedProfileContent(state.activeProfile,'question',profDef.question))}</div>
       <div class="validation-hint">Evalúa los indicadores del perfil. Tu criterio prima sobre los datos.</div>
       <div class="ordinal-buttons">${ordinalBtns}</div>
       <div class="validation-status">${lblStatus}</div>
@@ -518,9 +518,9 @@ function indicatorCard(k, hh) {
               onmouseenter="showTip(this,this.dataset.tip)"
               onmouseleave="hideTip()">ⓘ</button>
     </div>
-    <div class="indicator-name">${def.name}</div>
+    <div class="indicator-name">${escHtml(translatedIndicatorName(k,def.name))}</div>
     <div class="indicator-value">${def.display(hh, T())}</div>
-    <div class="indicator-note">${def.note(T())}</div>
+    <div class="indicator-note">${escHtml(translatedIndicatorCriterion(k,T(),def.note(T())))}</div>
   </div>`;
 }
 
@@ -628,7 +628,7 @@ function renderPhase2(area) {
     const dColor   = Math.abs(delta) < 0.005 ? '#9CA3AF' : delta > 0 ? '#D97706' : '#6B7280';
     return `<div class="weight-row-c ${curW === 0 ? 'excluded' : ''}" id="wrow-${k}">
       <span class="badge badge-sec wk">${k}</span>
-      <span class="wname">${def.name}</span>
+      <span class="wname">${escHtml(translatedIndicatorName(k,def.name))}</span>
       <input type="range" class="weight-slider wslider" data-key="${k}"
              min="0" max="100" step="0.1" value="${sliderVal}" ${canEvaluate() ? 'oninput="onWeightChange()"' : 'disabled'}>
       <span class="wval" id="wval-${k}">${(curW*100).toFixed(1)}%</span>
@@ -706,7 +706,7 @@ function renderPhase2(area) {
       <!-- Panel derecho: tabla de hogares -->
       <div class="phase2-right">
         <div class="ct-header">
-          <span style="color:${color};font-weight:700;font-size:0.82rem">${profDef.name}</span>
+          <span style="color:${color};font-weight:700;font-size:0.82rem">${escHtml(translatedProfileField(state.activeProfile,'name',profDef.name))}</span>
         </div>
         <div class="compact-table-header">
           <span>Hogar</span>
@@ -1071,7 +1071,7 @@ function exportResults(format) {
   });
 
   const data = {
-    profile: state.activeProfile, profile_name: pd().name,
+    profile: state.activeProfile, profile_name: translatedProfileField(state.activeProfile,'name',pd().name),
     username: state.username, thresholds: {...T()},
     weights: w, init_weights: pd().init_weights,
     metrics: m, households,

@@ -81,7 +81,7 @@ Los indicadores mantienen sus propios criterios y umbrales. La fase 0 decide qu�
 
 ### Idiomas
 
-El selector de idioma está disponible en el acceso y en la barra superior. La navegación general y el constructor de perfiles funcionan en español, italiano e inglés. La preferencia se guarda localmente.
+El selector de idioma está disponible en el acceso y en la barra superior. La navegación y el constructor de perfiles funcionan en español, italiano e inglés, incluyendo nombres y criterios de indicadores, perfiles, reglas TRUE, preguntas, descripciones, justificaciones, cautelas, estados metodológicos y hogares sintéticos. La preferencia se guarda localmente.
 
 ### Login
 Pantalla inicial con campo de nombre de evaluador y campo de contraseña. El nombre se guarda en `localStorage` y se muestra en la topbar. La contraseña es única y compartida (constante `APP_PASSWORD` en `data.js`); no es un mecanismo de seguridad real, solo evita que alguien abra la app sin saberla durante una demo en directo. El botón «Cambiar» vuelve al login.

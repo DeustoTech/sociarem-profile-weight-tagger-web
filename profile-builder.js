@@ -40,13 +40,13 @@ function renderProfileBuilder(area) {
   const activationTree = renderProfileRuleNode(definition.activationExpression, [], editable);
   const design = `<div class="profile-dashboard-grid">
     <section class="builder-card compact-card">
-      <div class="builder-section-heading"><b>${tr('builder.identity')}</b><span class="status-pill">${escHtml(definition.status)}</span></div>
+      <div class="builder-section-heading"><b>${tr('builder.identity')}</b><span class="status-pill">${escHtml(translatedLifecycleStatus(definition.status))}</span></div>
       <div class="profile-identity-grid">
         ${profileTextField(tr('builder.name'),'name',translatedProfileField(definition.profileId,'name',definition.metadata.name),editable)}
         ${profileTextField(tr('builder.short'),'short',translatedProfileField(definition.profileId,'short',definition.metadata.short),editable)}
         ${profileTextField(tr('builder.color'),'color',definition.metadata.color,editable)}
-        ${profileTextField(tr('builder.question'),'question',definition.metadata.question,editable)}
-        ${profileTextField(tr('builder.description'),'description',definition.metadata.description,editable,true)}
+        ${profileTextField(tr('builder.question'),'question',translatedProfileContent(definition.profileId,'question',definition.metadata.question),editable)}
+        ${profileTextField(tr('builder.description'),'description',translatedProfileContent(definition.profileId,'description',definition.metadata.description),editable,true)}
       </div>
     </section>
 
@@ -60,7 +60,7 @@ function renderProfileBuilder(area) {
     </section>
 
     <section class="builder-card compact-card profile-activation-card">
-      <div class="builder-section-heading"><b>${tr('builder.activation')}</b><span class="status-pill preliminary">${escHtml(definition.methodology.activationStatus)}</span></div>
+      <div class="builder-section-heading"><b>${tr('builder.activation')}</b><span class="status-pill preliminary">${escHtml(translatedMethodStatus(definition.methodology.activationStatus))}</span></div>
       <p class="compact-help">${tr('builder.activationHelp')}</p>
       <div class="profile-rule-toolbar">
         <select id="profile-activation-indicator" class="form-control" ${editable ? '' : 'disabled'}>${executableIndicatorOptions()}</select>
@@ -68,7 +68,7 @@ function renderProfileBuilder(area) {
         <button class="btn btn-secondary btn-sm" ${editable ? '' : 'disabled'} onclick="profileAddActivationCondition()">${tr('builder.addCondition')}</button>
         <div class="logic-buttons"><button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('and')">AND</button><button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('or')">OR</button><button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('not')">NOT</button></div>
       </div>
-      <div class="profile-rule-compact"><div class="ast-tree">${activationTree}</div><div class="profile-rule-summary"><b>${tr('builder.reading')}</b><span>${escHtml(expressionToNaturalLanguage(definition.activationExpression))}</span></div></div>
+      <div class="profile-rule-compact"><div class="ast-tree">${activationTree}</div><div class="profile-rule-summary"><b>${tr('builder.reading')}</b><span>${escHtml(profileActivationNatural(definition.activationExpression))}</span></div></div>
     </section>
 
     <section class="builder-card compact-card profile-variables-card">
@@ -108,13 +108,14 @@ function switchProfileBuilderTab(tab) {
 }
 
 function renderProfileMethodology(definition, validation) {
-  const cautions = definition.methodology.cautions || [];
+  const cautions = translatedProfileContent(definition.profileId,'cautions',definition.methodology.cautions || []);
+  const rationale = translatedProfileContent(definition.profileId,'rationale',definition.methodology.activationRationale);
   return `<div class="profile-methodology-view">
     <p class="methodology-intro">${tr('builder.methodHint')}</p>
     <div class="profile-methodology-grid">
-      <section class="builder-card"><div class="builder-section-heading"><b>${tr('builder.source')}</b></div><p>${escHtml(definition.methodology.source)}</p></section>
-      <section class="builder-card"><div class="builder-section-heading"><b>${tr('builder.version')}</b></div><p>${escHtml(MODEL_INFO.profileModel)}</p><p>${escHtml(definition.methodology.activationStatus)} · ${escHtml(definition.methodology.prioritizationStatus)}</p></section>
-      <section class="builder-card"><div class="builder-section-heading"><b>${tr('builder.activationRationale')}</b></div>${profileMethodField(tr('builder.activationRationale'),'activationRationale',definition.methodology.activationRationale,canEditProfiles(),true)}</section>
+      <section class="builder-card"><div class="builder-section-heading"><b>${tr('builder.source')}</b></div><p>${escHtml(translatedMethodologySource(definition.methodology.source))}</p></section>
+      <section class="builder-card"><div class="builder-section-heading"><b>${tr('builder.version')}</b></div><p>${definition.profileId} · schema v${PROFILE_SCHEMA_VERSION}</p><p>${escHtml(translatedMethodStatus(definition.methodology.activationStatus))} · ${escHtml(translatedMethodStatus(definition.methodology.prioritizationStatus))}</p></section>
+      <section class="builder-card"><div class="builder-section-heading"><b>${tr('builder.activationRationale')}</b></div>${profileMethodField(tr('builder.activationRationale'),'activationRationale',rationale,canEditProfiles(),true)}</section>
       <section class="builder-card"><div class="builder-section-heading"><b>${tr('builder.cautions')}</b></div>${cautions.length ? cautions.map(item => `<div class="diagnostic warning">⚠ ${escHtml(item)}</div>`).join('') : '<p>—</p>'}</section>
     </div>
     ${renderProfileDiagnostics(validation)}
@@ -140,22 +141,32 @@ function profileIndicatorGroup(label, ids = [], kind) {
 }
 
 function executableIndicatorOptions() {
-  return INDICATOR_CATALOG.filter(item => INDICATOR_DEFS[item.id]).map(item => `<option value="${item.id}">${item.id} · ${escHtml(item.name)}</option>`).join('');
+  return INDICATOR_CATALOG.filter(item => INDICATOR_DEFS[item.id]).map(item => `<option value="${item.id}">${item.id} · ${escHtml(translatedIndicatorName(item.id,item.name))}</option>`).join('');
+}
+
+function profileActivationNatural(node) {
+  if (!node) return '—';
+  if (node.type === 'indicatorRef') return `${node.indicatorId} · ${translatedIndicatorName(node.indicatorId,node.label)} = TRUE`;
+  const values = (node.operands || []).map(profileActivationNatural);
+  if (node.type === 'and') return `(${values.join(' AND ')})`;
+  if (node.type === 'or') return `(${values.join(' OR ')})`;
+  if (node.type === 'not') return `NOT (${values[0] || ''})`;
+  return expressionToMath(node);
 }
 
 function renderProfileRuleNode(node, path, editable) {
   const selected = JSON.stringify(path) === JSON.stringify(profileBuilderState.selectedActivationPath);
   const children = (node.operands || []).map((child,index) => renderProfileRuleNode(child,[...path,index],editable)).join('');
   const label = node.type === 'indicatorRef'
-    ? `${node.indicatorId} · ${INDICATOR_DEFS[node.indicatorId]?.name || node.label || 'Indicador'}`
+    ? `${node.indicatorId} · ${translatedIndicatorName(node.indicatorId,INDICATOR_DEFS[node.indicatorId]?.name || node.label || 'Indicador')}`
     : BLOCK_DEFINITIONS[node.type]?.label || node.type;
   const criterion = node.type === 'indicatorRef' && INDICATOR_DEFS[node.indicatorId]
-    ? INDICATOR_DEFS[node.indicatorId].note(T())
+    ? translatedIndicatorCriterion(node.indicatorId,T(),INDICATOR_DEFS[node.indicatorId].note(T()))
     : '';
   return `<div class="profile-rule-node ${selected ? 'selected' : ''} family-${BLOCK_DEFINITIONS[node.type]?.family || 'input'}">
     <div class="profile-rule-node-head" onclick="profileSelectActivationNode(${profilePathAttribute(path)})">
       <span class="ast-branch">${path.length ? '└─' : 'ROOT'}</span><b>${escHtml(label)}</b>
-      ${node.type === 'indicatorRef' ? `<span class="condition-criterion">${escHtml(criterion)} · ${tr('builder.trueCondition')}</span>` : ''}
+      ${node.type === 'indicatorRef' ? `<span class="condition-criterion">${escHtml(criterion)}</span>` : ''}
       <button ${editable && path.length ? '' : 'disabled'} onclick="event.stopPropagation();profileRemoveActivationNode(${profilePathAttribute(path)})" title="Eliminar">×</button>
     </div>
     ${children ? `<div class="ast-children">${children}</div>` : ''}
@@ -170,7 +181,7 @@ function renderProfileVariables(definition, weights, editable) {
   const role = primary.has(id) ? tr('builder.primaryRole') : secondary.has(id) ? tr('builder.secondaryRole') : tr('builder.addedRole');
     return `<div class="profile-variable-row ${weights[id] === 0 ? 'zero' : ''}">
       <span class="badge ${primary.has(id) ? 'badge-pri' : 'badge-sec'}">${id}</span>
-      <span class="profile-variable-name">${escHtml(INDICATOR_DEFS[id]?.name || node.label || id)}</span>
+      <span class="profile-variable-name">${escHtml(translatedIndicatorName(id,INDICATOR_DEFS[id]?.name || node.label || id))}</span>
       <span class="profile-variable-role">${role}</span>
       <span class="profile-variable-weight">${(weights[id] * 100).toFixed(1)}% ${tr('builder.initial')}</span>
       <button class="btn btn-secondary btn-sm" ${editable && definition.prioritizationExpression.operands.length > 1 ? '' : 'disabled'} onclick="profileRemovePriorityIndicator('${id}')">${tr('builder.remove')}</button>
@@ -197,9 +208,9 @@ function renderProfilePreview(definition, weights) {
       const context = profileDefinitionContext(definition, household, weights);
       const active = evaluateExpression(definition.activationExpression, context).value;
       const score = Number(evaluateExpression(expression, context).value) || 0;
-      return `<div class="profile-preview-household ${active ? 'active' : ''}"><b>${escHtml(household.nombre)}</b><span>${active ? tr('builder.active') : tr('builder.inactive')}</span><strong>${(score * 100).toFixed(0)}%</strong></div>`;
+      return `<div class="profile-preview-household ${active ? 'active' : ''}"><b>${escHtml(translatedHouseholdName(household.nombre))}</b><span>${active ? tr('builder.active') : tr('builder.inactive')}</span><strong>${(score * 100).toFixed(0)}%</strong></div>`;
     } catch (error) {
-      return `<div class="profile-preview-household error"><b>${escHtml(household.nombre)}</b><span>Error</span><strong>—</strong></div>`;
+      return `<div class="profile-preview-household error"><b>${escHtml(translatedHouseholdName(household.nombre))}</b><span>Error</span><strong>—</strong></div>`;
     }
   }).join('')}</div>`;
 }

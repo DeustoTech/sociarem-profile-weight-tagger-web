@@ -35,6 +35,7 @@ Base conservada: `main` en el commit previo a esta entrega.
 28. **Regla activadora compacta.** El árbol tiene altura limitada y cada hoja muestra el criterio concreto del indicador que devuelve TRUE, eliminando la etiqueta ambigua “riesgo sí/no”.
 29. **Metodología en sección aparte.** Fuentes, versión del modelo, justificación y cautelas se trasladan a una pestaña independiente del espacio de edición.
 30. **Soporte multidioma.** Se añade selector persistente ES/IT/EN en el acceso y en la aplicación, con navegación y constructor de perfiles traducidos.
+31. **Contenido metodológico realmente localizado.** Italiano e inglés incluyen ahora nombres y criterios de los 25 indicadores, descripciones y preguntas P1–P6, reglas activadoras, hogares, fuentes, justificaciones, cautelas y estados; las pruebas rechazan regresiones que vuelvan a mostrar castellano en esas vistas.
 
 ## Cómo volver atrás
 

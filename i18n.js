@@ -48,6 +48,37 @@ const I18N_MESSAGES = {
   },
 };
 
+const I18N_INDICATORS = {
+  es:{
+    I1:['Renta neta equivalente','< {renta_riesgo} €/mes → TRUE'],I2:['Bajo el umbral de pobreza','Renta < {pobreza} €/mes → TRUE'],I3:['Carga energética','> {carga}% → TRUE'],I4:['Impago o corte','Algún episodio en 12 meses → TRUE'],I5:['Consumo eléctrico','< {infra_elec} kWh → TRUE'],I6:['Consumo no eléctrico','< {infra_gas} kWh → TRUE'],I7:['Perfil horario','Patrón rígido → TRUE'],I8:['Pobreza energética oculta','Infraconsumo forzado detectado → TRUE'],I9:['Habitabilidad','Pobre o crítica → TRUE'],I10:['Sistemas energéticos','Deficientes u obsoletos → TRUE'],I11:['Acceso a ayudas','Ayuda social o energética reconocida → TRUE'],I12:['Microcrédito','Sin acceso → TRUE'],I13:['Capacidad energética y digital','Capacidad insuficiente → TRUE'],I14:['Participación digital comunitaria','Participación digital baja → TRUE'],I15:['Personas dependientes','≥ 1 persona dependiente → TRUE'],I16:['Dependencia funcional','Dependencia reconocida → TRUE'],I17:['Dependencia eléctrica o crónica','Necesidad eléctrica relevante → TRUE'],I18:['Índice territorial','> {territorial} → TRUE'],I19:['Acceso a servicios','> {acceso} min → TRUE'],I20:['Temperatura percibida','Malestar térmico declarado → TRUE'],I21:['Ahorros líquidos','< {ahorros} mes → TRUE'],I22:['Red de apoyo social','Débil o aislamiento → TRUE'],I23:['Participación comunitaria','Escasa o nula → TRUE'],I24:['Estigmatización','Moderada o severa → TRUE'],I25:['Estabilidad residencial','< {estabilidad} años → TRUE'],
+  },
+  it:{
+    I1:['Reddito netto equivalente','< {renta_riesgo} €/mese → TRUE'],I2:['Sotto la soglia di povertà','Reddito < {pobreza} €/mese → TRUE'],I3:['Incidenza della spesa energetica','> {carga}% → TRUE'],I4:['Mancato pagamento o interruzione','Almeno un episodio in 12 mesi → TRUE'],I5:['Consumo elettrico','< {infra_elec} kWh → TRUE'],I6:['Consumo non elettrico','< {infra_gas} kWh → TRUE'],I7:['Profilo orario','Schema rigido → TRUE'],I8:['Povertà energetica nascosta','Sottoconsumo forzato rilevato → TRUE'],I9:['Abitabilità','Scarsa o critica → TRUE'],I10:['Sistemi energetici','Inadeguati o obsoleti → TRUE'],I11:['Accesso agli aiuti','Sostegno sociale o energetico riconosciuto → TRUE'],I12:['Microcredito','Nessun accesso → TRUE'],I13:['Capacità energetica e digitale','Capacità insufficiente → TRUE'],I14:['Partecipazione digitale comunitaria','Bassa partecipazione digitale → TRUE'],I15:['Persone dipendenti','≥ 1 persona dipendente → TRUE'],I16:['Dipendenza funzionale','Dipendenza riconosciuta → TRUE'],I17:['Dipendenza elettrica o patologia cronica','Fabbisogno elettrico rilevante → TRUE'],I18:['Indice territoriale','> {territorial} → TRUE'],I19:['Accesso ai servizi','> {acceso} min → TRUE'],I20:['Temperatura percepita','Disagio termico dichiarato → TRUE'],I21:['Risparmi liquidi','< {ahorros} mese → TRUE'],I22:['Rete di sostegno sociale','Debole o isolamento → TRUE'],I23:['Partecipazione comunitaria','Scarsa o nulla → TRUE'],I24:['Stigmatizzazione','Moderata o grave → TRUE'],I25:['Stabilità abitativa','< {estabilidad} anni → TRUE'],
+  },
+  en:{
+    I1:['Equivalent net income','< {renta_riesgo} €/month → TRUE'],I2:['Below the poverty threshold','Income < {pobreza} €/month → TRUE'],I3:['Household energy burden','> {carga}% → TRUE'],I4:['Non-payment or supply interruption','At least one episode in 12 months → TRUE'],I5:['Electricity consumption','< {infra_elec} kWh → TRUE'],I6:['Non-electric energy consumption','< {infra_gas} kWh → TRUE'],I7:['Time-of-use profile','Rigid pattern → TRUE'],I8:['Hidden energy poverty','Forced underconsumption detected → TRUE'],I9:['Housing habitability','Poor or critical → TRUE'],I10:['Energy systems','Inadequate or obsolete → TRUE'],I11:['Access to assistance','Recognised social or energy support → TRUE'],I12:['Microcredit','No access → TRUE'],I13:['Energy and digital capability','Insufficient capability → TRUE'],I14:['Community digital participation','Low digital participation → TRUE'],I15:['Dependent household members','≥ 1 dependent person → TRUE'],I16:['Functional dependency','Recognised dependency → TRUE'],I17:['Electric or chronic dependency','Relevant electricity need → TRUE'],I18:['Territorial index','> {territorial} → TRUE'],I19:['Access to services','> {acceso} min → TRUE'],I20:['Perceived temperature','Reported thermal discomfort → TRUE'],I21:['Liquid savings','< {ahorros} month → TRUE'],I22:['Social support network','Weak support or isolation → TRUE'],I23:['Community participation','Low or none → TRUE'],I24:['Stigmatisation','Moderate or severe → TRUE'],I25:['Residential stability','< {estabilidad} years → TRUE'],
+  },
+};
+
+const I18N_PROFILE_CONTENT = {
+  it:{
+    P1:{description:'Risorse strutturalmente insufficienti e pressione dei costi energetici, aggravate da insolvenze e bassa resilienza.',question:'Il nucleo presenta vulnerabilità economica strutturale?',rationale:'Si attiva in caso di povertà relativa o quando un reddito insufficiente coincide con un elevato onere energetico o un mancato pagamento. I11, I12, I21, I22 e I25 modulano la priorità.',cautions:['I1 e I2 sono correlati; il peso iniziale di I2 è zero per evitare un doppio conteggio prima della revisione degli esperti.','I22 è incluso come fattore complementare di resilienza con peso iniziale zero.']},
+    P2:{description:'Vulnerabilità causata principalmente dalle condizioni fisiche, termiche o tecniche dell’abitazione.',question:'Il nucleo presenta vulnerabilità dovuta alle condizioni abitative?',rationale:'Si attiva quando l’abitabilità o i sistemi energetici presentano un rischio; consumi e disagio forniscono il contesto.',cautions:[]},
+    P3:{description:'Sottoconsumo involontario non spiegato da un’abitazione efficiente e associato a vincoli economici.',question:'Il nucleo presenta povertà energetica nascosta?',rationale:'Richiede contemporaneamente un segnale di sottoconsumo, condizioni che escludano l’efficienza come spiegazione e un vincolo economico. I4 rafforza la priorità.',cautions:['I8 rimane un’approssimazione dimostrativa; il valore di riferimento deve essere adeguato a nucleo, abitazione e clima.']},
+    P4:{description:'Fabbisogni energetici critici associati a dipendenza, mobilità ridotta, salute o dispositivi elettrici.',question:'Il nucleo presenta fragilità o dipendenza elettrica?',rationale:'Si attiva quando è presente almeno un segnale primario di fragilità. Il reddito non è un requisito di accesso.',cautions:['La continuità dell’alimentazione elettrica richiede una tutela specifica oltre al punteggio ponderato.']},
+    P5:{description:'Svantaggio territoriale o barriere effettive nell’accesso a infrastrutture, servizi e meccanismi di protezione.',question:'Il nucleo presenta vulnerabilità territoriale o di accesso?',rationale:'Si attiva per rischio territoriale o barriere effettive di accesso; sostegno e partecipazione modulano la priorità.',cautions:['I19 compare in D1.5 e nella proposta dei profili, ma è ritirato nel catalogo V3.0. Viene mantenuto temporaneamente per tracciabilità fino alla definizione di un sostituto.']},
+    P6:{description:'Debolezza del sostegno sociale, dell’integrazione comunitaria e della capacità effettiva di partecipare o accedere agli aiuti.',question:'Il nucleo presenta vulnerabilità socio-comunitaria?',rationale:'Si attiva con un segnale sociale primario; le dimensioni economica, territoriale e digitale amplificano la priorità.',cautions:['I13 e I14 sono presenti nel catalogo V3.0 e in D1.5, ma la demo non dispone ancora di dati o normalizzazione eseguibile; restano visibili come elementi in attesa.']},
+  },
+  en:{
+    P1:{description:'Structurally insufficient resources and pressure from energy costs, reinforced by arrears and low resilience.',question:'Does the household show structural economic vulnerability?',rationale:'It activates under relative poverty or when insufficient income coincides with a high energy burden or non-payment. I11, I12, I21, I22 and I25 adjust priority.',cautions:['I1 and I2 are related; I2 starts at zero weight to avoid double counting before expert review.','I22 is included as a complementary resilience factor with an initial weight of zero.']},
+    P2:{description:'Vulnerability caused mainly by the physical, thermal or technical condition of the dwelling.',question:'Does the household show vulnerability due to housing conditions?',rationale:'It activates when habitability or energy systems indicate risk; consumption and discomfort provide context.',cautions:[]},
+    P3:{description:'Involuntary underconsumption that is not explained by an efficient dwelling and coincides with economic constraint.',question:'Does the household show hidden energy poverty?',rationale:'It requires an underconsumption signal, conditions that rule out efficiency as the explanation and an economic constraint. I4 reinforces priority.',cautions:['I8 remains a demo approximation; the reference value must be adjusted for household, dwelling and climate.']},
+    P4:{description:'Critical energy needs associated with dependency, reduced mobility, health or electrical equipment.',question:'Does the household show fragility or electricity dependence?',rationale:'It activates when at least one primary fragility signal is present. Low income is not an entry requirement.',cautions:['Continuity of electricity supply requires a specific safeguard in addition to the weighted score.']},
+    P5:{description:'Territorial disadvantage or effective barriers to infrastructure, services and protection mechanisms.',question:'Does the household show territorial or access vulnerability?',rationale:'It activates through territorial risk or effective access barriers; support and participation adjust priority.',cautions:['I19 appears in D1.5 and the profile proposal, but is retired in the V3.0 catalogue. It is retained temporarily for traceability until a replacement is agreed.']},
+    P6:{description:'Weak social support, community integration and effective ability to participate or access assistance.',question:'Does the household show socio-community vulnerability?',rationale:'It activates through a primary social signal; economic, territorial and digital dimensions amplify priority.',cautions:['I13 and I14 appear in the V3.0 catalogue and D1.5, but the demo does not yet have executable data or normalisation; they remain visible as pending.']},
+  },
+};
+
 let currentLanguage = typeof localStorage !== 'undefined' ? (localStorage.getItem('sociarem_language') || 'es') : 'es';
 if (!I18N_MESSAGES[currentLanguage]) currentLanguage = 'es';
 
@@ -67,3 +98,37 @@ function setLanguage(language) {
 
 function translatedProfileField(profileId, field, fallback) { return tr(`profiles.${profileId}.${field}`, fallback); }
 function translatedWorkflowField(stage, field) { return tr(`workflow.${stage.id}.${field}`, stage[field]); }
+function translatedIndicatorName(indicatorId, fallback = indicatorId) { return I18N_INDICATORS[currentLanguage]?.[indicatorId]?.[0] || I18N_INDICATORS.es[indicatorId]?.[0] || fallback; }
+function translatedIndicatorCriterion(indicatorId, thresholds = {}, fallback = '') {
+  const template = I18N_INDICATORS[currentLanguage]?.[indicatorId]?.[1] || I18N_INDICATORS.es[indicatorId]?.[1] || fallback;
+  return String(template).replace(/\{([^}]+)\}/g, (_match,key) => thresholds[key] ?? `{${key}}`);
+}
+function translatedProfileContent(profileId, field, fallback) { return I18N_PROFILE_CONTENT[currentLanguage]?.[profileId]?.[field] ?? fallback; }
+function translatedMethodologySource(fallback) {
+  if (currentLanguage === 'it') return 'D1.5 v2, sezioni 4.2.1–4.2.6 e tabella 39; proposta verificata rispetto a Energy Vulnerability Profiles v1.1.';
+  if (currentLanguage === 'en') return 'D1.5 v2, sections 4.2.1–4.2.6 and Table 39; proposal cross-checked against Energy Vulnerability Profiles v1.1.';
+  return fallback;
+}
+function translatedLifecycleStatus(status) {
+  const labels = {
+    es:{APPROVED:'PUBLICADO',REVIEW:'EN REVISIÓN',DRAFT:'BORRADOR'},
+    it:{APPROVED:'PUBBLICATO',REVIEW:'IN REVISIONE',DRAFT:'BOZZA'},
+    en:{APPROVED:'PUBLISHED',REVIEW:'IN REVIEW',DRAFT:'DRAFT'},
+  };
+  return labels[currentLanguage]?.[status] || status;
+}
+function translatedMethodStatus(status) {
+  const labels = {
+    es:{PRELIMINAR:'PRELIMINAR','PESOS INICIALES DE LA DEMO':'PESOS INICIALES DE LA DEMO'},
+    it:{PRELIMINAR:'PRELIMINARE','PESOS INICIALES DE LA DEMO':'PESI INIZIALI DELLA DEMO'},
+    en:{PRELIMINAR:'PRELIMINARY','PESOS INICIALES DE LA DEMO':'INITIAL DEMO WEIGHTS'},
+  };
+  return labels[currentLanguage]?.[status] || status;
+}
+function translatedHouseholdName(name) {
+  const match = /^Hogar\s+(\d+)$/i.exec(String(name));
+  if (!match) return name;
+  if (currentLanguage === 'it') return `Nucleo ${match[1]}`;
+  if (currentLanguage === 'en') return `Household ${match[1]}`;
+  return name;
+}
