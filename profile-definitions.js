@@ -1,6 +1,7 @@
 'use strict';
 
 const PROFILE_DEFINITIONS_KEY = 'sociarem_profile_definitions_v2';
+const PROFILE_DELETED_KEY = 'sociarem_deleted_profile_ids_v1';
 const PROFILE_SCHEMA_VERSION = 2;
 
 function profileIndicatorRef(indicatorId, valueMode = 'normalized') {
@@ -102,14 +103,33 @@ function documentedProfileSeeds() {
   };
 }
 
-function seedProfileDefinitions() { return cloneExpression(documentedProfileSeeds()); }
+let profileSeedCache = null;
+function seedProfileDefinitions() {
+  if (!profileSeedCache) profileSeedCache = documentedProfileSeeds();
+  return cloneExpression(profileSeedCache);
+}
+
+function readDeletedProfileIds() {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    const ids = JSON.parse(localStorage.getItem(PROFILE_DELETED_KEY) || '[]');
+    return Array.isArray(ids) ? [...new Set(ids.filter(id => typeof id === 'string' && id))] : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeDeletedProfileIds(ids) {
+  if (typeof localStorage !== 'undefined') localStorage.setItem(PROFILE_DELETED_KEY, JSON.stringify([...new Set(ids)]));
+}
 
 function readProfileDefinitions() {
   let stored = {};
   if (typeof localStorage !== 'undefined') {
     try { stored = JSON.parse(localStorage.getItem(PROFILE_DEFINITIONS_KEY) || '{}'); } catch (error) { stored = {}; }
   }
-  return {...seedProfileDefinitions(), ...stored};
+  const deleted = new Set(readDeletedProfileIds());
+  return Object.fromEntries(Object.entries({...seedProfileDefinitions(), ...stored}).filter(([profileId]) => !deleted.has(profileId)));
 }
 
 function collectWeightedKeys(expression) {
@@ -187,6 +207,7 @@ function profileDefinitionToRuntime(definition) {
 
 function hydrateApprovedProfiles() {
   const seeds = seedProfileDefinitions();
+  for (const profileId of readDeletedProfileIds()) delete PROFILES[profileId];
   for (const definition of Object.values(readProfileDefinitions())) {
     const published = definition.status === 'APPROVED' ? definition : seeds[definition.profileId];
     if (published && validateProfileDefinition(published).valid) PROFILES[published.profileId] = profileDefinitionToRuntime(published);
@@ -194,6 +215,7 @@ function hydrateApprovedProfiles() {
 }
 
 function saveProfileDefinition(definition) {
+  writeDeletedProfileIds(readDeletedProfileIds().filter(profileId => profileId !== definition.profileId));
   let stored = {};
   if (typeof localStorage !== 'undefined') {
     try { stored = JSON.parse(localStorage.getItem(PROFILE_DEFINITIONS_KEY) || '{}'); } catch (error) { stored = {}; }
@@ -202,6 +224,17 @@ function saveProfileDefinition(definition) {
   }
   if (definition.status === 'APPROVED') PROFILES[definition.profileId] = profileDefinitionToRuntime(definition);
   return definition;
+}
+
+function deleteProfileDefinition(profileId) {
+  let stored = {};
+  if (typeof localStorage !== 'undefined') {
+    try { stored = JSON.parse(localStorage.getItem(PROFILE_DEFINITIONS_KEY) || '{}'); } catch (error) { stored = {}; }
+    delete stored[profileId];
+    localStorage.setItem(PROFILE_DEFINITIONS_KEY, JSON.stringify(stored));
+  }
+  writeDeletedProfileIds([...readDeletedProfileIds(), profileId]);
+  delete PROFILES[profileId];
 }
 
 function createProfileDraft(profileId) {

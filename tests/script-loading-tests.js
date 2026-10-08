@@ -39,6 +39,7 @@ const exposed = vm.runInContext(`({
   validateExpression:typeof validateExpression,
   findDependencyCycle:typeof findDependencyCycle,
   serializeIndicatorDefinition:typeof serializeIndicatorDefinition,
+  deleteProfileDefinition:typeof deleteProfileDefinition,
   renderPhase1:typeof renderPhase1,
   renderExpertConsensus:typeof renderExpertConsensus
 })`, context);
@@ -55,6 +56,7 @@ assert.match(renderedProfileBuilder, /Regla activadora/);
 assert.match(renderedProfileBuilder, /Variables que ponderarán/);
 assert.match(renderedProfileBuilder, /I2 OR \(I1 AND I3\) OR \(I1 AND I4\)/);
 assert.match(renderedProfileBuilder, />ROOT</);
+assert.match(renderedProfileBuilder, /Eliminar perfil/);
 assert.equal((renderedProfileBuilder.match(/profile-logic-indicator/g) || []).length, 5);
 assert.equal((renderedProfileBuilder.match(/profile-preview-household/g) || []).length, 10);
 assert.equal(vm.runInContext(`Object.keys(I18N_MESSAGES.es).every(key => key in I18N_MESSAGES.it && key in I18N_MESSAGES.en)`, context), true);
@@ -74,6 +76,14 @@ const englishMethodology = vm.runInContext(`(() => { profileBuilderState.activeT
 assert.match(englishMethodology, /sections 4\.2\.1/);
 assert.match(englishMethodology, /Structurally insufficient resources|insufficient income/);
 assert.doesNotMatch(englishMethodology, /secciones 4\.2\.1|Insuficiencia estructural/);
+const deletionRoundTrip = vm.runInContext(`(() => {
+  deleteProfileDefinition('P6');
+  const deleted = !Object.prototype.hasOwnProperty.call(readProfileDefinitions(),'P6') && !Object.prototype.hasOwnProperty.call(PROFILES,'P6');
+  saveProfileDefinition(seedProfileDefinitions().P6);
+  const restored = Object.prototype.hasOwnProperty.call(readProfileDefinitions(),'P6') && Object.prototype.hasOwnProperty.call(PROFILES,'P6');
+  return {deleted,restored};
+})()`, context);
+assert.deepEqual({...deletionRoundTrip}, {deleted:true,restored:true});
 assert.deepEqual(localScripts, [
   'i18n.js','data.js','indicator-units.js','indicator-expression.js','indicator-evaluator.js',
   'indicator-dependencies.js','indicator-serialization.js','profile-definitions.js','app.js','profile-builder.js',

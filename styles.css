@@ -1546,11 +1546,13 @@ textarea.form-control { resize: vertical; min-height: 58px; }
 .profile-variable-table { max-height:245px; overflow:auto; }
 .profile-variable-row { grid-template-columns:38px minmax(120px,1fr) 78px 88px 58px; padding:6px 8px; }
 .profile-variable-add { margin:7px 0 0; }
-.profile-preview-grid { grid-template-columns:repeat(5,minmax(0,1fr)); max-height:none; overflow:visible; }
+.profile-preview-grid { grid-template-columns:repeat(2,minmax(0,1fr)); max-height:none; overflow:visible; }
 .profile-preview-household { padding:7px 8px; }
 .profile-validation-card .diagnostics { margin-bottom:6px; }
 .compact-actions { gap:5px; }
 .compact-actions .btn { padding:6px 9px; font-size:.72rem; }
+.btn-danger { color:var(--danger); background:#fff; border-color:#FCA5A5; }
+.btn-danger:hover:not(:disabled) { color:#991B1B; background:var(--danger-soft); border-color:var(--danger); }
 .profile-methodology-view { display:grid; gap:10px; }
 .methodology-intro { color:var(--muted); }
 .profile-methodology-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }

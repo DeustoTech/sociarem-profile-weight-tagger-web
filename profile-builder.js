@@ -89,7 +89,7 @@ function renderProfileBuilder(area) {
       <div class="builder-section-heading"><b>${tr('builder.validation')}</b></div>
       ${renderProfileDiagnostics(validation)}
       <div class="builder-actions compact-actions">
-        <button class="btn btn-secondary" onclick="resetProfileBuilder()">${tr('builder.restore')}</button><button class="btn btn-secondary" onclick="exportProfileDefinition()">${tr('builder.export')}</button><button class="btn btn-secondary" ${editable ? '' : 'disabled'} onclick="document.getElementById('profile-definition-import').click()">${tr('builder.import')}</button><button class="btn btn-primary" ${editable ? '' : 'disabled'} onclick="persistProfileBuilder('DRAFT')">${tr('builder.saveDraft')}</button><button class="btn btn-accent2" ${editable ? '' : 'disabled'} onclick="persistProfileBuilder('REVIEW')">${tr('builder.review')}</button><button class="btn btn-secondary" ${editable && definition.status === 'REVIEW' ? '' : 'disabled'} onclick="persistProfileBuilder('APPROVED')">${tr('builder.publish')}</button>
+        <button class="btn btn-secondary" onclick="resetProfileBuilder()">${tr('builder.restore')}</button><button class="btn btn-secondary" onclick="exportProfileDefinition()">${tr('builder.export')}</button><button class="btn btn-secondary" ${editable ? '' : 'disabled'} onclick="document.getElementById('profile-definition-import').click()">${tr('builder.import')}</button><button class="btn btn-danger" ${editable && Object.keys(readProfileDefinitions()).length > 1 ? '' : 'disabled'} onclick="deleteCurrentProfile()">${tr('builder.deleteProfile')}</button><button class="btn btn-primary" ${editable ? '' : 'disabled'} onclick="persistProfileBuilder('DRAFT')">${tr('builder.saveDraft')}</button><button class="btn btn-accent2" ${editable ? '' : 'disabled'} onclick="persistProfileBuilder('REVIEW')">${tr('builder.review')}</button><button class="btn btn-secondary" ${editable && definition.status === 'REVIEW' ? '' : 'disabled'} onclick="persistProfileBuilder('APPROVED')">${tr('builder.publish')}</button>
       </div>
       <input type="file" id="profile-definition-import" accept="application/json,.json" hidden onchange="importProfileDefinition(event)">
     </section>
@@ -339,13 +339,48 @@ function resetProfileBuilder() {
 
 function createNewProfile() {
   if (!canEditProfiles()) return;
-  const ids = Object.keys(readProfileDefinitions()).map(id => Number(id.replace(/^P/,''))).filter(Number.isFinite);
+  const ids = [...Object.keys(readProfileDefinitions()), ...readDeletedProfileIds()].map(id => Number(id.replace(/^P/,''))).filter(Number.isFinite);
   const profileId = `P${Math.max(6,...ids) + 1}`;
   const definition = createProfileDraft(profileId);
   definition.author = state.username;
   saveProfileDefinition(definition);
   state.selectedProfileDefinitionId = profileId;
   loadProfileBuilderDefinition(profileId, true);
+  renderAll();
+}
+
+function deleteCurrentProfile() {
+  if (!canEditProfiles()) return;
+  const definition = currentProfileDefinition();
+  const definitions = readProfileDefinitions();
+  if (Object.keys(definitions).length <= 1) { showNotification(tr('builder.cannotDeleteLast')); return; }
+  const profileLabel = `${definition.profileId} · ${translatedProfileField(definition.profileId,'name',definition.metadata.name)}`;
+  if (!window.confirm(tr('builder.deleteConfirm').replace('{profile}', profileLabel))) return;
+
+  const profileId = definition.profileId;
+  deleteProfileDefinition(profileId);
+  delete state.profiles[profileId];
+  persistConsensusSubmissions(getConsensusSubmissions().filter(item => item.profile !== profileId));
+
+  let candidates = {};
+  try { candidates = JSON.parse(localStorage.getItem(CONSENSUS_CANDIDATES_KEY) || '{}'); } catch (error) { candidates = {}; }
+  if (!candidates || typeof candidates !== 'object' || Array.isArray(candidates)) candidates = {};
+  delete candidates[profileId];
+  localStorage.setItem(CONSENSUS_CANDIDATES_KEY, JSON.stringify(candidates));
+
+  const storedVersions = getWeightVersions();
+  const versions = storedVersions && typeof storedVersions === 'object' && !Array.isArray(storedVersions) ? storedVersions : {};
+  for (const userProfiles of Object.values(versions)) if (userProfiles && typeof userProfiles === 'object') delete userProfiles[profileId];
+  persistWeightVersions(versions);
+
+  const nextProfileId = Object.keys(readProfileDefinitions())[0];
+  state.selectedProfileDefinitionId = nextProfileId;
+  if (state.activeProfile === profileId) {
+    state.activeProfile = nextProfileId;
+    ensureProfileState(nextProfileId);
+  }
+  loadProfileBuilderDefinition(nextProfileId, true);
+  showNotification(tr('builder.deleteDone').replace('{profile}', profileLabel));
   renderAll();
 }
 
