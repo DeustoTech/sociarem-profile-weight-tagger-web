@@ -37,7 +37,7 @@ function renderProfileBuilder(area) {
   const editable = canEditProfiles();
   const validation = validateProfileDefinition(definition);
   const weights = initialProfileWeights(definition.prioritizationExpression);
-  const activationTree = renderProfileRuleNode(definition.activationExpression, [], editable);
+  const activationConditions = renderActivationConditionCards(definition.activationExpression, [], editable);
   const design = `<div class="profile-dashboard-grid">
     <section class="builder-card compact-card">
       <div class="builder-section-heading"><b>${tr('builder.identity')}</b><span class="status-pill">${escHtml(translatedLifecycleStatus(definition.status))}</span></div>
@@ -64,11 +64,13 @@ function renderProfileBuilder(area) {
       <p class="compact-help">${tr('builder.activationHelp')}</p>
       <div class="profile-rule-toolbar">
         <select id="profile-activation-indicator" class="form-control" ${editable ? '' : 'disabled'}>${executableIndicatorOptions()}</select>
+        <button class="btn btn-secondary btn-sm ${profileBuilderState.selectedActivationPath.length ? '' : 'active'}" onclick="profileSelectActivationNode([])">${tr('builder.wholeRule')}</button>
         <button class="btn btn-secondary btn-sm" ${editable ? '' : 'disabled'} onclick="profileReplaceActivationWithIndicator()">${tr('builder.replaceCondition')}</button>
         <button class="btn btn-secondary btn-sm" ${editable ? '' : 'disabled'} onclick="profileAddActivationCondition()">${tr('builder.addCondition')}</button>
         <div class="logic-buttons"><button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('and')">AND</button><button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('or')">OR</button><button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('not')">NOT</button></div>
       </div>
-      <div class="profile-rule-compact"><div class="ast-tree">${activationTree}</div><div class="profile-rule-summary"><b>${tr('builder.reading')}</b><span>${escHtml(profileActivationNatural(definition.activationExpression))}</span></div></div>
+      <div class="profile-rule-console"><span>${tr('builder.logicFormula')}</span><code>${escHtml(profileActivationFormula(definition.activationExpression))}</code></div>
+      <div class="profile-condition-grid">${activationConditions}</div>
     </section>
 
     <section class="builder-card compact-card profile-variables-card">
@@ -154,23 +156,31 @@ function profileActivationNatural(node) {
   return expressionToMath(node);
 }
 
-function renderProfileRuleNode(node, path, editable) {
+function profileActivationFormula(node, isRoot = true) {
+  if (!node) return '—';
+  if (node.type === 'indicatorRef') return node.indicatorId;
+  const values = (node.operands || []).map(child => profileActivationFormula(child, false));
+  if (node.type === 'and' || node.type === 'or') {
+    const formula = values.join(node.type === 'and' ? ' AND ' : ' OR ');
+    return isRoot ? formula : `(${formula})`;
+  }
+  if (node.type === 'not') return isRoot ? `NOT ${values[0] || ''}` : `(NOT ${values[0] || ''})`;
+  return expressionToMath(node);
+}
+
+function renderActivationConditionCards(node, path, editable) {
+  if (!node) return '';
+  if (node.type !== 'indicatorRef') return (node.operands || []).map((child,index) => renderActivationConditionCards(child,[...path,index],editable)).join('');
   const selected = JSON.stringify(path) === JSON.stringify(profileBuilderState.selectedActivationPath);
-  const children = (node.operands || []).map((child,index) => renderProfileRuleNode(child,[...path,index],editable)).join('');
-  const label = node.type === 'indicatorRef'
-    ? `${node.indicatorId} · ${translatedIndicatorName(node.indicatorId,INDICATOR_DEFS[node.indicatorId]?.name || node.label || 'Indicador')}`
-    : BLOCK_DEFINITIONS[node.type]?.label || node.type;
-  const criterion = node.type === 'indicatorRef' && INDICATOR_DEFS[node.indicatorId]
-    ? translatedIndicatorCriterion(node.indicatorId,T(),INDICATOR_DEFS[node.indicatorId].note(T()))
-    : '';
-  return `<div class="profile-rule-node ${selected ? 'selected' : ''} family-${BLOCK_DEFINITIONS[node.type]?.family || 'input'}">
-    <div class="profile-rule-node-head" onclick="profileSelectActivationNode(${profilePathAttribute(path)})">
-      <span class="ast-branch">${path.length ? '└─' : 'ROOT'}</span><b>${escHtml(label)}</b>
-      ${node.type === 'indicatorRef' ? `<span class="condition-criterion">${escHtml(criterion)}</span>` : ''}
-      <button ${editable && path.length ? '' : 'disabled'} onclick="event.stopPropagation();profileRemoveActivationNode(${profilePathAttribute(path)})" title="Eliminar">×</button>
-    </div>
-    ${children ? `<div class="ast-children">${children}</div>` : ''}
-  </div>`;
+  const indicator = INDICATOR_DEFS[node.indicatorId];
+  const name = translatedIndicatorName(node.indicatorId,indicator?.name || node.label || node.indicatorId);
+  const criterion = translatedIndicatorCriterion(node.indicatorId,T(),indicator?.note(T()) || '');
+  return `<button class="profile-condition-card ${selected ? 'selected' : ''}" onclick="profileSelectActivationNode(${profilePathAttribute(path)})">
+    <span class="badge badge-pri">${node.indicatorId}</span>
+    <span class="profile-condition-copy"><b>${escHtml(name)}</b><small>${escHtml(criterion)}</small></span>
+    <span class="profile-condition-true">TRUE</span>
+    <span class="profile-condition-remove ${editable && path.length ? '' : 'disabled'}" onclick="event.stopPropagation();profileRemoveActivationNode(${profilePathAttribute(path)})">×</span>
+  </button>`;
 }
 
 function renderProfileVariables(definition, weights, editable) {

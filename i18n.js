@@ -2,7 +2,7 @@
 
 const I18N_MESSAGES = {
   es:{
-    'language.label':'Idioma','language.es':'Español','language.it':'Italiano','language.en':'English','common.phase':'FASE',
+    'language.label':'Idioma','language.es':'Español','language.it':'Italiano','language.en':'English','common.phase':'FASE','builder.logicFormula':'Fórmula lógica','builder.wholeRule':'Regla completa',
     'login.subtitle':'Piloto Messina · PoC de vulnerabilidad energética','login.demo':'Entorno de demostración','login.synthetic':'Datos sintéticos · sin autenticación real','login.user':'Evaluador','login.userPlaceholder':'Nombre o código de evaluador','login.role':'Rol de demostración','login.password':'Contraseña','login.passwordPlaceholder':'Contraseña de acceso','login.enter':'Entrar →',
     'role.methodology':'Diseño metodológico','role.expert':'Persona experta','role.facilitator':'Facilitación del consenso','role.observer':'Observación y auditoría',
     'top.activeProfile':'Perfil activo:','top.user':'Usuario:','top.change':'Cambiar','top.reference':'Mostrar etiquetas de referencia',
@@ -17,7 +17,7 @@ const I18N_MESSAGES = {
     'profiles.P1.name':'Vulnerabilidad económica estructural','profiles.P1.short':'Económica','profiles.P2.name':'Vulnerabilidad por condiciones de la vivienda','profiles.P2.short':'Vivienda','profiles.P3.name':'Pobreza energética oculta','profiles.P3.short':'P. oculta','profiles.P4.name':'Fragilidad del hogar y dependencia eléctrica','profiles.P4.short':'Fragilidad','profiles.P5.name':'Vulnerabilidad territorial y de acceso','profiles.P5.short':'Territorial','profiles.P6.name':'Vulnerabilidad socio-comunitaria','profiles.P6.short':'Socio-com.',
   },
   it:{
-    'language.label':'Lingua','language.es':'Español','language.it':'Italiano','language.en':'English','common.phase':'FASE',
+    'language.label':'Lingua','language.es':'Español','language.it':'Italiano','language.en':'English','common.phase':'FASE','builder.logicFormula':'Formula logica','builder.wholeRule':'Regola completa',
     'login.subtitle':'Pilota Messina · PoC sulla vulnerabilità energetica','login.demo':'Ambiente dimostrativo','login.synthetic':'Dati sintetici · nessuna autenticazione reale','login.user':'Valutatore','login.userPlaceholder':'Nome o codice del valutatore','login.role':'Ruolo dimostrativo','login.password':'Password','login.passwordPlaceholder':'Password di accesso','login.enter':'Accedi →',
     'role.methodology':'Progettazione metodologica','role.expert':'Persona esperta','role.facilitator':'Facilitazione del consenso','role.observer':'Osservazione e audit',
     'top.activeProfile':'Profilo attivo:','top.user':'Utente:','top.change':'Cambia','top.reference':'Mostra etichette di riferimento',
@@ -32,7 +32,7 @@ const I18N_MESSAGES = {
     'profiles.P1.name':'Vulnerabilità economica strutturale','profiles.P1.short':'Economica','profiles.P2.name':'Vulnerabilità dovuta alle condizioni abitative','profiles.P2.short':'Abitazione','profiles.P3.name':'Povertà energetica nascosta','profiles.P3.short':'Povertà nascosta','profiles.P4.name':'Fragilità familiare e dipendenza elettrica','profiles.P4.short':'Fragilità','profiles.P5.name':'Vulnerabilità territoriale e di accesso','profiles.P5.short':'Territoriale','profiles.P6.name':'Vulnerabilità socio-comunitaria','profiles.P6.short':'Socio-com.',
   },
   en:{
-    'language.label':'Language','language.es':'Español','language.it':'Italiano','language.en':'English','common.phase':'PHASE',
+    'language.label':'Language','language.es':'Español','language.it':'Italiano','language.en':'English','common.phase':'PHASE','builder.logicFormula':'Logical formula','builder.wholeRule':'Whole rule',
     'login.subtitle':'Messina pilot · Energy vulnerability PoC','login.demo':'Demonstration environment','login.synthetic':'Synthetic data · no real authentication','login.user':'Evaluator','login.userPlaceholder':'Evaluator name or code','login.role':'Demo role','login.password':'Password','login.passwordPlaceholder':'Access password','login.enter':'Enter →',
     'role.methodology':'Methodology design','role.expert':'Expert','role.facilitator':'Consensus facilitation','role.observer':'Observation and audit',
     'top.activeProfile':'Active profile:','top.user':'User:','top.change':'Change','top.reference':'Show reference labels',

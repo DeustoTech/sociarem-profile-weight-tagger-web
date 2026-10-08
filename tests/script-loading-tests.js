@@ -53,6 +53,8 @@ const renderedProfileBuilder = vm.runInContext(`(() => {
 assert.match(renderedProfileBuilder, /Construcción de perfiles/);
 assert.match(renderedProfileBuilder, /Regla activadora/);
 assert.match(renderedProfileBuilder, /Variables que ponderarán/);
+assert.match(renderedProfileBuilder, /I2 OR \(I1 AND I3\) OR \(I1 AND I4\)/);
+assert.equal((renderedProfileBuilder.match(/profile-condition-card/g) || []).length, 5);
 assert.equal(vm.runInContext(`Object.keys(I18N_MESSAGES.es).every(key => key in I18N_MESSAGES.it && key in I18N_MESSAGES.en)`, context), true);
 assert.equal(vm.runInContext(`(setLanguage('it'), tr('builder.title'))`, context), 'Costruzione dei profili');
 assert.equal(vm.runInContext(`(setLanguage('en'), tr('builder.title'))`, context), 'Profile construction');
