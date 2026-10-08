@@ -1484,3 +1484,54 @@ textarea.form-control { resize: vertical; min-height: 58px; }
   #app-footer { height: auto; min-height: 38px; padding: 7px 10px; }
   .footer-logos { display: none; }
 }
+
+/* Fase 0 compacta */
+.topbar-language { width:54px; height:28px; border:1px solid var(--border); border-radius:6px; background:#fff; color:var(--text); }
+.compact-profile-builder { display:grid; gap:10px; }
+.profile-builder-header { display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.profile-builder-header h2 { font-size:1.18rem; line-height:1.2; }
+.profile-builder-header p { color:var(--muted); font-size:.78rem; margin-top:2px; }
+.profile-builder-tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); }
+.profile-builder-tabs button { border:0; border-bottom:3px solid transparent; background:transparent; padding:7px 12px; color:var(--muted); font-weight:700; cursor:pointer; }
+.profile-builder-tabs button.active { color:var(--primary); border-bottom-color:var(--primary); }
+.profile-dashboard-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px; align-items:start; }
+.compact-card { padding:12px; margin:0; }
+.compact-card .builder-section-heading { margin-bottom:8px; }
+.profile-identity-grid { display:grid; grid-template-columns:1.5fr .75fr .5fr; gap:7px 9px; }
+.profile-identity-grid .form-field { min-width:0; }
+.profile-identity-grid .form-field:nth-child(4),.profile-identity-grid .form-field.full { grid-column:1 / -1; }
+.profile-identity-grid textarea { min-height:52px; }
+.profile-composition-stack { display:grid; gap:7px; }
+.profile-composition-stack .profile-indicator-group { padding:8px 9px; }
+.profile-composition-stack .profile-indicator-group b { margin-bottom:3px; }
+.profile-activation-card,.profile-validation-card { grid-column:1 / -1; }
+.compact-help { color:var(--muted); font-size:.76rem; margin:-2px 0 8px; }
+.profile-rule-toolbar { display:grid; grid-template-columns:minmax(220px,1fr) auto auto auto; gap:6px; align-items:center; }
+.logic-buttons { display:flex; gap:4px; }
+.profile-rule-compact { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(220px,.55fr); gap:8px; margin-top:8px; align-items:start; }
+.profile-rule-compact .ast-tree { display:flex; flex-wrap:wrap; gap:5px; padding:7px; min-height:48px; max-height:180px; overflow:auto; border:1px solid var(--border); border-radius:8px; background:#F8FAFC; }
+.profile-rule-compact .profile-rule-node { margin:0; min-width:190px; flex:1 1 220px; }
+.profile-rule-compact .profile-rule-node-head { min-height:34px; padding:5px 7px; font-size:.75rem; }
+.profile-rule-compact .ast-children { padding:2px 5px 5px 14px; }
+.condition-criterion { margin-left:auto; color:#166534; font-size:.66rem; line-height:1.2; text-align:right; max-width:230px; }
+.profile-rule-summary { display:grid; gap:4px; padding:9px; border:1px solid var(--border); border-radius:8px; font-size:.74rem; background:#fff; }
+.profile-rule-summary span { color:var(--muted); line-height:1.35; }
+.profile-variable-table { max-height:245px; overflow:auto; }
+.profile-variable-row { grid-template-columns:38px minmax(120px,1fr) 78px 88px 58px; padding:6px 8px; }
+.profile-variable-add { margin:7px 0 0; }
+.profile-preview-grid { grid-template-columns:repeat(2,minmax(0,1fr)); max-height:292px; overflow:auto; }
+.profile-preview-household { padding:7px 8px; }
+.profile-validation-card .diagnostics { margin-bottom:6px; }
+.compact-actions { gap:5px; }
+.compact-actions .btn { padding:6px 9px; font-size:.72rem; }
+.profile-methodology-view { display:grid; gap:10px; }
+.methodology-intro { color:var(--muted); }
+.profile-methodology-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.profile-methodology-grid .builder-card { margin:0; }
+
+@media (max-width: 1050px) {
+  .profile-dashboard-grid,.profile-methodology-grid { grid-template-columns:1fr; }
+  .profile-activation-card,.profile-validation-card { grid-column:auto; }
+  .profile-rule-toolbar { grid-template-columns:1fr auto; }
+  .logic-buttons { grid-column:1 / -1; }
+}

@@ -50,6 +50,12 @@ function profileHasReferenceLabels(profileId) {
   return HOUSEHOLDS.some(hh => hh.gt && Number.isInteger(hh.gt[profileId]));
 }
 
+function changeLanguage(language) {
+  setLanguage(language);
+  const main = document.getElementById('main-screen');
+  if (main && !main.hasAttribute('hidden')) renderAll();
+}
+
 function currentWeights() {
   const s   = ps();
   const base = s.liveWeights || s.optimizedWeights || {...pd().init_weights};
@@ -171,13 +177,13 @@ function renderTopbar() {
     wrap.innerHTML = Object.entries(PROFILES).map(([pid, def]) => `
       <button class="profile-btn ${state.activeProfile === pid ? 'active' : ''}"
               style="${state.activeProfile === pid ? `background:${def.color}` : ''}"
-              onclick="switchProfile('${pid}')">${pid} · ${def.short}</button>
+              onclick="switchProfile('${pid}')">${pid} · ${escHtml(translatedProfileField(pid,'short',def.short))}</button>
     `).join('');
   }
   const userEl = document.getElementById('topbar-user');
   if (userEl) userEl.textContent = state.username;
   const roleEl = document.getElementById('topbar-role');
-  if (roleEl) roleEl.textContent = roleDef().label;
+  if (roleEl) roleEl.textContent = tr(`role.${state.role}`, roleDef().label);
   const profileWrap = document.getElementById('profile-selector-wrap');
   const profileContext = ['expert-evaluation', 'expert-consensus'].includes(state.workflowStage);
   if (profileWrap) profileWrap.style.display = profileContext ? '' : 'none';
@@ -198,11 +204,11 @@ function renderWorkflowBar() {
   bar.innerHTML = WORKFLOW_STAGES.map((stage, index) => {
     const active = stage.id === state.workflowStage;
     const future = !stage.implemented;
-    const status = stage.state;
+    const status = translatedWorkflowField(stage,'state');
     return `<button class="workflow-step ${active ? 'active' : ''} ${future ? 'future' : ''}"
-      onclick="switchWorkflowStage('${stage.id}')" title="${escHtml(stage.description)}">
+      onclick="switchWorkflowStage('${stage.id}')" title="${escHtml(translatedWorkflowField(stage,'description'))}">
       <span class="workflow-step-number">${index}</span>
-      <span class="workflow-step-copy"><span class="workflow-step-title">${stage.short}</span><span class="workflow-step-state">${status}</span></span>
+      <span class="workflow-step-copy"><span class="workflow-step-title">${escHtml(translatedWorkflowField(stage,'short'))}</span><span class="workflow-step-state">${escHtml(status)}</span></span>
     </button>`;
   }).join('');
 }
@@ -326,7 +332,7 @@ function renderWorkflowSidebar() {
   const stage = WORKFLOW_STAGES.find(s => s.id === state.workflowStage);
   if (info) {
     info.style.color = 'var(--accent2)';
-    info.textContent = stage ? stage.short : 'Metodología';
+    info.textContent = stage ? translatedWorkflowField(stage,'short') : tr('role.methodology','Metodología');
   }
   if (!list || !bottom) return;
 
@@ -335,13 +341,13 @@ function renderWorkflowSidebar() {
     list.innerHTML = Object.values(definitions).map(def => `
       <button class="sidebar-item ${state.selectedProfileDefinitionId === def.profileId ? 'active' : ''}" onclick="selectProfileDefinition('${def.profileId}')">
         <span class="sidebar-dot" style="color:${def.metadata.color || '#64748B'}">⬤</span>
-        <span class="sidebar-item-name">${def.profileId} · ${escHtml(def.metadata.short || def.metadata.name)}</span>
+        <span class="sidebar-item-name">${def.profileId} · ${escHtml(translatedProfileField(def.profileId,'short',def.metadata.short || def.metadata.name))}</span>
         <span class="sidebar-level-tag">${escHtml(def.status)}</span>
       </button>`).join('');
     const approved = Object.values(definitions).filter(def => def.status === 'APPROVED').length;
-    bottom.innerHTML = `<div class="catalog-summary"><div class="catalog-kpi"><b>${Object.keys(definitions).length}</b><span>perfiles</span></div><div class="catalog-kpi"><b>${approved}</b><span>publicados</span></div></div>
-      <button class="btn btn-secondary btn-sm btn-full mb-1" ${canEditProfiles() ? '' : 'disabled'} onclick="createNewProfile()">＋ Nuevo perfil</button>
-      <div class="permission-note">${canEditProfiles() ? 'Puedes editar reglas y variables; los pesos se ajustan después.' : 'Vista de consulta: cambia al rol Diseño metodológico para editar.'}</div>`;
+    bottom.innerHTML = `<div class="catalog-summary"><div class="catalog-kpi"><b>${Object.keys(definitions).length}</b><span>${tr('builder.profiles')}</span></div><div class="catalog-kpi"><b>${approved}</b><span>${tr('builder.published')}</span></div></div>
+      <button class="btn btn-secondary btn-sm btn-full mb-1" ${canEditProfiles() ? '' : 'disabled'} onclick="createNewProfile()">${tr('builder.newProfile')}</button>
+      <div class="permission-note">${canEditProfiles() ? tr('builder.weightsHint') : tr('builder.viewOnly')}</div>`;
     return;
   }
 
@@ -350,7 +356,7 @@ function renderWorkflowSidebar() {
     list.innerHTML = Object.entries(PROFILES).map(([pid, def]) => {
       const n = getConsensusSubmissions().filter(s => s.profile === pid).length;
       return `<button class="sidebar-item ${state.activeProfile === pid ? 'active' : ''}" onclick="switchProfile('${pid}')">
-        <span class="sidebar-dot" style="color:${def.color}">⬤</span><span class="sidebar-item-name">${pid} · ${def.short}</span>
+        <span class="sidebar-dot" style="color:${def.color}">⬤</span><span class="sidebar-item-name">${pid} · ${escHtml(translatedProfileField(pid,'short',def.short))}</span>
         <span class="sidebar-level-tag">${n}</span>
       </button>`;
     }).join('');
@@ -378,9 +384,9 @@ function renderHouseholdHeader() {
   if (!el) return;
   if (state.workflowStage !== 'expert-evaluation') {
     const stage = WORKFLOW_STAGES.find(s => s.id === state.workflowStage);
-    el.innerHTML = `<div class="stage-header"><div><div class="hh-id">FASE ${WORKFLOW_STAGES.findIndex(s => s.id === state.workflowStage)}</div>
-      <div class="hh-name">${escHtml(stage?.title || '')}</div></div>
-      <span class="stage-status ${stage?.implemented ? 'prototype' : 'future'}">${escHtml(stage?.state || '')}</span></div>`;
+    el.innerHTML = `<div class="stage-header"><div><div class="hh-id">${tr('common.phase')} ${WORKFLOW_STAGES.findIndex(s => s.id === state.workflowStage)}</div>
+      <div class="hh-name">${escHtml(stage ? translatedWorkflowField(stage,'title') : '')}</div></div>
+      <span class="stage-status ${stage?.implemented ? 'prototype' : 'future'}">${escHtml(stage ? translatedWorkflowField(stage,'state') : '')}</span></div>`;
     return;
   }
   const hh  = hhA();
@@ -1302,6 +1308,7 @@ function showNotification(msg) {
 // ─── Inicialización ───────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(currentLanguage);
   state.thresholds = {...DEFAULT_THRESHOLDS};
   const savedUser = localStorage.getItem('sociarem_username') || '';
   const inp = document.getElementById('login-username');

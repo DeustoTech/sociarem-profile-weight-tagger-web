@@ -26,6 +26,7 @@ Funciona en Chrome, Firefox y Edge modernos.
 |---|---|
 | `index.html` | Estructura HTML: login, topbar, sidebar, área principal |
 | `styles.css` | Diseño visual, layout, tarjetas, botones, sliders, tooltip |
+| `i18n.js` | Diccionarios y selector de idioma español, italiano e inglés |
 | `data.js` | Hogares, perfiles, indicadores, umbrales, funciones de cálculo |
 | `app.js` | Estado, renderizado, eventos, optimización, exportación |
 | `indicator-expression.js` | Nodos AST, constructores, validación de tipos y vistas derivadas |
@@ -33,78 +34,54 @@ Funciona en Chrome, Firefox y Edge modernos.
 | `indicator-units.js` | Inferencia ligera y compatibilidad de unidades |
 | `indicator-dependencies.js` | Grafo de dependencias y detección de ciclos |
 | `indicator-serialization.js` | Persistencia V2, import/export y migración del rule builder anterior |
-| `indicator-builder.js` | Interfaz de bloques anidados y sandbox de Fase 0 |
+| `profile-definitions.js` | Seis perfiles documentados, activación, priorización y persistencia |
+| `profile-builder.js` | Interfaz compacta para construir y publicar perfiles en Fase 0 |
 
 ---
 
 ## Flujo de la demo
 
-La barra superior presenta el roadmap completo de siete fases: construcción de indicadores, evaluación experta, consenso experto, preferencias de participantes, consenso comunitario y dos fases de reparto de beneficios. Las tres primeras disponen de interacción; las demás están marcadas explícitamente como roadmap.
+La barra superior presenta el roadmap completo de siete fases: construcción de perfiles, evaluación experta, consenso experto, preferencias de participantes, consenso comunitario y dos fases de reparto de beneficios. Las tres primeras disponen de interacción; las demás están marcadas explícitamente como roadmap.
 
 ### Roles de demostración
 
-- **Diseño metodológico**: edita borradores de indicadores y reglas.
+- **Diseño metodológico**: edita borradores de perfiles, reglas activadoras y variables ponderables.
 - **Persona experta**: etiqueta casos, ajusta pesos y envía propuestas.
 - **Facilitación del consenso**: compara propuestas y guarda una candidata pendiente de deliberación.
 - **Observación y auditoría**: consulta sin editar.
 
 Estos roles solo deshabilitan controles en el navegador. No son autenticación ni autorización real; para producción hacen falta servidor, base de datos, cuentas y registro de auditoría.
 
-### Fase 0 — Constructor de indicadores
+### Fase 0 — Constructor de perfiles
 
-- Catálogo V3.0 con 24 indicadores activos, incluidos I13 e I14.
-- I19 aparece retirado y solo se conserva para trazabilidad histórica.
-- Metadata autoritativa separada de la definición computacional.
-- AST estructurado y serializable; la fórmula textual es una vista derivada.
-- Inputs: campo institucional, referencia a otro indicador, constante y parámetro.
-- Bloques matemáticos, comparaciones, AND/OR/NOT, IF/THEN/ELSE y transformaciones.
-- Árbol anidado editable: añadir, envolver, cambiar tipo, eliminar y reordenar operandos.
-- Vista matemática y explicación en lenguaje natural generadas automáticamente.
-- Sandbox que genera inputs, ejecuta la expresión y muestra la traza paso a paso.
-- Validación de tipos, unidades, operandos, dependencias y ciclos antes de guardar.
-- Estados `DRAFT → REVIEW → APPROVED` guardados en `localStorage`.
-- Import/export JSON con reconstrucción exacta del AST.
+- Precarga P1–P6 a partir de D1.5 v2 y de la propuesta de perfiles v1.1.
+- Separa explícitamente la **regla activadora** de la **regla de priorización**.
+- Cada condición indica qué criterio del indicador produce `TRUE`; AND, OR y NOT combinan esos resultados.
+- La regla activadora no contiene pesos. Si devuelve `FALSE`, el score del perfil es cero.
+- Las variables ponderables pasan a la fase experta con los pesos anteriores como punto de partida; un peso cero es válido.
+- I13 e I14 permanecen visibles como pendientes en P6 hasta disponer de datos y normalización ejecutable.
+- P5 muestra la cautela de versión de I19: aparece en D1.5, pero el catálogo V3.0 lo marca retirado.
+- Permite crear perfiles adicionales, guardarlos como `DRAFT`, enviarlos a `REVIEW` y publicarlos para expertos.
+- Importa y exporta definiciones JSON con `schemaVersion: 2`.
+- La pantalla de edición usa dos columnas, limita la altura de la regla y mueve fuentes, versiones y cautelas a una pestaña metodológica separada.
 
-#### Modelo AST
-
-Cada definición usa `schemaVersion: 1` y contiene `metadata`, `expression`, `parameters`, `dependencies`, `output`, estado, fecha y autor. Los nodos son explícitos (`add`, `divide`, `compare`, `and`, `if`…), de modo que el cálculo no depende de evaluar strings.
-
-```json
-{
-  "schemaVersion": 1,
-  "indicatorId": "I3",
-  "expression": {
-    "type": "percent",
-    "operands": [{
-      "type": "divide",
-      "operands": [
-        { "type": "sum", "operands": [/* raw fields */] },
-        { "type": "rawInput", "inputId": "annualIncome" }
-      ]
-    }]
-  },
-  "output": { "type": "number", "unit": "%", "nullable": false }
-}
-```
-
-`evaluateExpression(ast, context)` está separado de la UI y devuelve valor y traza. Esta separación permite preparar futuros transpiladores JavaScript, Python o MP-SPDZ, pero **no implementa SMPC**.
-
-#### Indicadores formalizados
-
-- **I2**: comparación entre I1 y el parámetro de umbral de pobreza, derivada del criterio existente.
-- **I8**: árbol booleano basado en la lógica ya presente en el código de la demo (I5/I6, I1/I3 e I9/I10).
-- **I1, I3–I7, I9–I25**: metadata disponible, `computationalDefinition` pendiente hasta que exista una especificación metodológica suficientemente precisa. No se inventan campos ni fórmulas.
-
-Los borradores del rule builder V1 se migran a nodos de comparación y AND/OR, conservando la definición original bajo `legacyDefinition` y marcándolos como `migrated-needs-review`.
-
-#### Indicadores frente a perfiles
+#### Modelo de perfil
 
 ```text
-FASE 0: datos institucionales → cálculo interno → I1… I25
-FASES 1–2: I1… I25 → pesos/reglas → P1… P6 → evaluación del hogar
+indicadores calculados
+        ↓
+regla activadora booleana (TRUE/FALSE)
+        ↓ TRUE
+suma ponderada normalizada
+        ↓
+score 0–1 utilizado en la fase experta
 ```
 
-Los pesos optimizados nunca forman parte del AST de un indicador.
+Los indicadores mantienen sus propios criterios y umbrales. La fase 0 decide qué indicadores activan un perfil y cómo se combinan; la fase experta decide cuánto pesa cada variable cuando el perfil está activo.
+
+### Idiomas
+
+El selector de idioma está disponible en el acceso y en la barra superior. La navegación general y el constructor de perfiles funcionan en español, italiano e inglés. La preferencia se guarda localmente.
 
 ### Login
 Pantalla inicial con campo de nombre de evaluador y campo de contraseña. El nombre se guarda en `localStorage` y se muestra en la topbar. La contraseña es única y compartida (constante `APP_PASSWORD` en `data.js`); no es un mecanismo de seguridad real, solo evita que alguien abra la app sin saberla durante una demo en directo. El botón «Cambiar» vuelve al login.
@@ -173,10 +150,11 @@ Cada perfil mantiene estado independiente: etiquetas experto, pesos optimizados 
 
 ## Fórmula de score
 
-Cada indicador se normaliza a `[0, 1]` (0 = sin vulnerabilidad, 1 = máxima).
+Cada indicador ponderable se normaliza a `[0, 1]` (0 = sin vulnerabilidad, 1 = máxima). Primero se evalúa la activación:
 
 ```
-score(hogar, perfil) = Σ(w_i × norm_i(hogar)) / Σ(w_i)
+score(hogar, perfil) = 0                                      si activación = FALSE
+score(hogar, perfil) = Σ(w_i × norm_i(hogar)) / Σ(w_i)        si activación = TRUE
 ```
 
 El nivel predicho se obtiene con `scoreToLevel(score)` usando umbrales:
@@ -270,11 +248,11 @@ El footer inferior muestra los logos de financiación (Unión Europea / Horizon 
 ## Limitaciones del PoC
 
 - Dataset sintético de 10 hogares — no representativo estadísticamente.
-- La optimización JS (descenso de gradiente) no replica scipy SLSQP; divergencia en pesos esperada.
+- La optimización JS usa gradiente numérico sobre la regla completa y no replica scipy SLSQP; se espera divergencia en pesos.
 - El login pide nombre y contraseña, pero la contraseña es una constante en texto plano (`APP_PASSWORD` en `data.js`); es una barrera para demos en directo, no una medida de seguridad real.
 - Las versiones de pesos se guardan en `localStorage`; se pierden si se limpia el navegador.
 - Los indicadores cualitativos (I7, I9, I10…) usan escalas ordinales simplificadas.
-- El modelo de perfiles sigue marcado como provisional. P5 conserva I19 por compatibilidad con la versión anterior aunque el catálogo V3.0 lo retire.
+- Las reglas de activación y los pesos iniciales siguen marcados como preliminares hasta validación experta. P5 conserva I19 por trazabilidad aunque el catálogo V3.0 lo retire.
 
 ## Verificación
 
@@ -282,9 +260,11 @@ El footer inferior muestra los logos de financiación (Unión Europea / Horizon 
 node --check app.js
 node --check data.js
 node tests/indicator-engine-tests.js
+node tests/profile-engine-tests.js
 node tests/smoke-tests.js
+node tests/script-loading-tests.js
 ```
 
-Las pruebas del motor cubren aritmética, anidamiento, comparaciones, AND/OR, IF, unidades, resolución de dependencias, ciclos, tipos, división por cero, migración y round-trip JSON. La prueba de humo conserva el catálogo V3.0, los pesos cero y los 60 casos de paridad de scores existentes.
+Las pruebas cubren el motor de expresiones, los seis perfiles documentados, las compuertas de activación, los pesos cero, la serialización JSON, los tres idiomas, el orden de carga y los 60 casos históricos de paridad del núcleo ponderado.
 
 El detalle reversible de esta entrega está en `CHANGELOG_DEMO.md`. El trabajo vive en la rama `codex/demo-ready`, separada de `main`.

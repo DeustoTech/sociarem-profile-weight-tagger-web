@@ -5,6 +5,7 @@ const profileBuilderState = {
   definition:null,
   selectedActivationPath:[],
   diagnostics:null,
+  activeTab:'design',
 };
 
 function loadProfileBuilderDefinition(profileId, force = false) {
@@ -37,84 +38,86 @@ function renderProfileBuilder(area) {
   const validation = validateProfileDefinition(definition);
   const weights = initialProfileWeights(definition.prioritizationExpression);
   const activationTree = renderProfileRuleNode(definition.activationExpression, [], editable);
-  const cautions = definition.methodology.cautions || [];
-
-  area.innerHTML = `<div class="ast-builder profile-builder">
-    <div class="phase-intro">
-      <div><div class="phase-intro-title">Construcción de perfiles · schema v${PROFILE_SCHEMA_VERSION}</div>
-      <div class="phase-intro-text">Indicadores ya calculados → regla de activación → perfil → variables que las personas expertas ponderan después.</div></div>
-      <span class="model-version">${escHtml(MODEL_INFO.profileModel)}</span>
-    </div>
-    <div class="demo-note"><strong>Separación metodológica:</strong> la regla activadora decide si el perfil aplica. La priorización calcula su intensidad únicamente cuando está activo. Los pesos no se fijan aquí: se ajustan en la fase experta.</div>
-
-    <section class="builder-card metadata-section">
-      <div class="builder-section-heading"><div><span class="builder-step">1</span><b>Identidad del perfil</b></div><span class="status-pill">${escHtml(definition.status)}</span></div>
-      <div class="form-grid">
-        ${profileTextField('Nombre','name',definition.metadata.name,editable)}
-        ${profileTextField('Nombre corto','short',definition.metadata.short,editable)}
-        ${profileTextField('Color','color',definition.metadata.color,editable)}
-        ${profileTextField('Pregunta experta','question',definition.metadata.question,editable)}
-        ${profileTextField('Descripción','description',definition.metadata.description,editable,true)}
-        ${profileMethodField('Justificación de activación','activationRationale',definition.methodology.activationRationale,editable,true)}
+  const design = `<div class="profile-dashboard-grid">
+    <section class="builder-card compact-card">
+      <div class="builder-section-heading"><b>${tr('builder.identity')}</b><span class="status-pill">${escHtml(definition.status)}</span></div>
+      <div class="profile-identity-grid">
+        ${profileTextField(tr('builder.name'),'name',translatedProfileField(definition.profileId,'name',definition.metadata.name),editable)}
+        ${profileTextField(tr('builder.short'),'short',translatedProfileField(definition.profileId,'short',definition.metadata.short),editable)}
+        ${profileTextField(tr('builder.color'),'color',definition.metadata.color,editable)}
+        ${profileTextField(tr('builder.question'),'question',definition.metadata.question,editable)}
+        ${profileTextField(tr('builder.description'),'description',definition.metadata.description,editable,true)}
       </div>
     </section>
 
-    <section class="builder-card">
-      <div class="builder-section-heading"><div><span class="builder-step">2</span><b>Propuesta documental precargada</b></div><span class="status-pill preliminary">${escHtml(definition.methodology.activationStatus)}</span></div>
-      <div class="profile-source">${escHtml(definition.methodology.source)}</div>
-      <div class="profile-method-grid">
-        ${profileIndicatorGroup('Indicadores primarios',definition.methodology.primaryIndicators,'primary')}
-        ${profileIndicatorGroup('Indicadores secundarios',definition.methodology.secondaryIndicators,'secondary')}
-        ${profileIndicatorGroup('Pendientes de integración',definition.methodology.pendingIndicators,'pending')}
+    <section class="builder-card compact-card">
+      <div class="builder-section-heading"><b>${tr('builder.composition')}</b><span>${validation.dependencies.length}</span></div>
+      <div class="profile-composition-stack">
+        ${profileIndicatorGroup(tr('builder.primary'),definition.methodology.primaryIndicators,'primary')}
+        ${profileIndicatorGroup(tr('builder.secondary'),definition.methodology.secondaryIndicators,'secondary')}
+        ${profileIndicatorGroup(tr('builder.pending'),definition.methodology.pendingIndicators,'pending')}
       </div>
-      ${cautions.map(item => `<div class="diagnostic warning">⚠ ${escHtml(item)}</div>`).join('')}
     </section>
 
-    <section class="builder-card">
-      <div class="builder-section-heading"><div><span class="builder-step">3</span><b>Regla activadora</b></div><span class="field-help">Bloques booleanos, sin pesos</span></div>
-      <div class="profile-rule-palette">
+    <section class="builder-card compact-card profile-activation-card">
+      <div class="builder-section-heading"><b>${tr('builder.activation')}</b><span class="status-pill preliminary">${escHtml(definition.methodology.activationStatus)}</span></div>
+      <p class="compact-help">${tr('builder.activationHelp')}</p>
+      <div class="profile-rule-toolbar">
         <select id="profile-activation-indicator" class="form-control" ${editable ? '' : 'disabled'}>${executableIndicatorOptions()}</select>
-        <button class="block-button input" ${editable ? '' : 'disabled'} onclick="profileReplaceActivationWithIndicator()">Indicador de riesgo</button>
-        <button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('and')">AND</button>
-        <button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('or')">OR</button>
-        <button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('not')">NOT</button>
-        <button class="block-button input" ${editable ? '' : 'disabled'} onclick="profileAddActivationCondition()">＋ Condición</button>
+        <button class="btn btn-secondary btn-sm" ${editable ? '' : 'disabled'} onclick="profileReplaceActivationWithIndicator()">${tr('builder.replaceCondition')}</button>
+        <button class="btn btn-secondary btn-sm" ${editable ? '' : 'disabled'} onclick="profileAddActivationCondition()">${tr('builder.addCondition')}</button>
+        <div class="logic-buttons"><button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('and')">AND</button><button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('or')">OR</button><button class="block-button logic" ${editable ? '' : 'disabled'} onclick="profileWrapActivation('not')">NOT</button></div>
       </div>
-      <div class="profile-rule-layout">
-        <div class="ast-tree">${activationTree}</div>
-        <div class="profile-rule-readable"><b>Lectura humana</b><p>${escHtml(expressionToNaturalLanguage(definition.activationExpression))}.</p><b>Expresión lógica</b><code>${escHtml(expressionToMath(definition.activationExpression))}</code></div>
-      </div>
+      <div class="profile-rule-compact"><div class="ast-tree">${activationTree}</div><div class="profile-rule-summary"><b>${tr('builder.reading')}</b><span>${escHtml(expressionToNaturalLanguage(definition.activationExpression))}</span></div></div>
     </section>
 
-    <section class="builder-card">
-      <div class="builder-section-heading"><div><span class="builder-step">4</span><b>Variables ponderables</b></div><span class="field-help">Los porcentajes son solo el punto de partida actual</span></div>
+    <section class="builder-card compact-card profile-variables-card">
+      <div class="builder-section-heading"><b>${tr('builder.variables')}</b></div>
+      <p class="compact-help">${tr('builder.weightsHint')}</p>
       <div class="profile-variable-table">${renderProfileVariables(definition, weights, editable)}</div>
-      <div class="profile-variable-add">
-        <select id="profile-priority-indicator" class="form-control" ${editable ? '' : 'disabled'}>${executableIndicatorOptions()}</select>
-        <button class="btn btn-secondary btn-sm" ${editable ? '' : 'disabled'} onclick="profileAddPriorityIndicator()">＋ Añadir variable</button>
-      </div>
-      <div class="permission-note">Un peso inicial de 0 conserva la variable como candidata sin influir en el score. En la fase 1 los expertos pueden asignarle peso o excluirla.</div>
+      <div class="profile-variable-add"><select id="profile-priority-indicator" class="form-control" ${editable ? '' : 'disabled'}>${executableIndicatorOptions()}</select><button class="btn btn-secondary btn-sm" ${editable ? '' : 'disabled'} onclick="profileAddPriorityIndicator()">${tr('builder.addVariable')}</button></div>
     </section>
 
-    <section class="builder-card sandbox-card">
-      <div class="builder-section-heading"><div><span class="builder-step">5</span><b>Vista previa con hogares sintéticos</b></div><span class="field-help">Regla + pesos iniciales</span></div>
+    <section class="builder-card compact-card profile-preview-card">
+      <div class="builder-section-heading"><b>${tr('builder.preview')}</b><span class="field-help">${tr('builder.previewHint')}</span></div>
       ${renderProfilePreview(definition, weights)}
     </section>
 
-    <section class="builder-card validation-card-ast">
-      <div class="builder-section-heading"><div><span class="builder-step">6</span><b>Validación y publicación</b></div><span>${validation.dependencies.length} indicadores conectados</span></div>
+    <section class="builder-card compact-card profile-validation-card">
+      <div class="builder-section-heading"><b>${tr('builder.validation')}</b></div>
       ${renderProfileDiagnostics(validation)}
-      <div class="builder-actions">
-        <button class="btn btn-secondary" onclick="resetProfileBuilder()">Restaurar guardado</button>
-        <button class="btn btn-secondary" onclick="exportProfileDefinition()">↓ Exportar JSON</button>
-        <button class="btn btn-secondary" ${editable ? '' : 'disabled'} onclick="document.getElementById('profile-definition-import').click()">↑ Importar JSON</button>
-        <button class="btn btn-primary" ${editable ? '' : 'disabled'} onclick="persistProfileBuilder('DRAFT')">Guardar DRAFT</button>
-        <button class="btn btn-accent2" ${editable ? '' : 'disabled'} onclick="persistProfileBuilder('REVIEW')">Enviar a REVIEW</button>
-        <button class="btn btn-secondary" ${editable && definition.status === 'REVIEW' ? '' : 'disabled'} onclick="persistProfileBuilder('APPROVED')">Publicar para expertos</button>
+      <div class="builder-actions compact-actions">
+        <button class="btn btn-secondary" onclick="resetProfileBuilder()">${tr('builder.restore')}</button><button class="btn btn-secondary" onclick="exportProfileDefinition()">${tr('builder.export')}</button><button class="btn btn-secondary" ${editable ? '' : 'disabled'} onclick="document.getElementById('profile-definition-import').click()">${tr('builder.import')}</button><button class="btn btn-primary" ${editable ? '' : 'disabled'} onclick="persistProfileBuilder('DRAFT')">${tr('builder.saveDraft')}</button><button class="btn btn-accent2" ${editable ? '' : 'disabled'} onclick="persistProfileBuilder('REVIEW')">${tr('builder.review')}</button><button class="btn btn-secondary" ${editable && definition.status === 'REVIEW' ? '' : 'disabled'} onclick="persistProfileBuilder('APPROVED')">${tr('builder.publish')}</button>
       </div>
       <input type="file" id="profile-definition-import" accept="application/json,.json" hidden onchange="importProfileDefinition(event)">
     </section>
-    ${editable ? '' : '<div class="permission-note">Vista de consulta. El rol Diseño metodológico habilita la edición.</div>'}
+  </div>`;
+
+  const methodology = renderProfileMethodology(definition,validation);
+  area.innerHTML = `<div class="profile-builder compact-profile-builder">
+    <div class="profile-builder-header"><div><h2>${tr('builder.title')}</h2><p>${tr('builder.subtitle')}</p></div><span class="model-version">${definition.profileId}</span></div>
+    <div class="profile-builder-tabs"><button class="${profileBuilderState.activeTab === 'design' ? 'active' : ''}" onclick="switchProfileBuilderTab('design')">${tr('builder.design')}</button><button class="${profileBuilderState.activeTab === 'method' ? 'active' : ''}" onclick="switchProfileBuilderTab('method')">${tr('builder.method')}</button></div>
+    ${profileBuilderState.activeTab === 'method' ? methodology : design}
+    ${editable ? '' : `<div class="permission-note">${tr('builder.viewOnly')}</div>`}
+  </div>`;
+}
+
+function switchProfileBuilderTab(tab) {
+  profileBuilderState.activeTab = tab === 'method' ? 'method' : 'design';
+  renderContentArea();
+}
+
+function renderProfileMethodology(definition, validation) {
+  const cautions = definition.methodology.cautions || [];
+  return `<div class="profile-methodology-view">
+    <p class="methodology-intro">${tr('builder.methodHint')}</p>
+    <div class="profile-methodology-grid">
+      <section class="builder-card"><div class="builder-section-heading"><b>${tr('builder.source')}</b></div><p>${escHtml(definition.methodology.source)}</p></section>
+      <section class="builder-card"><div class="builder-section-heading"><b>${tr('builder.version')}</b></div><p>${escHtml(MODEL_INFO.profileModel)}</p><p>${escHtml(definition.methodology.activationStatus)} · ${escHtml(definition.methodology.prioritizationStatus)}</p></section>
+      <section class="builder-card"><div class="builder-section-heading"><b>${tr('builder.activationRationale')}</b></div>${profileMethodField(tr('builder.activationRationale'),'activationRationale',definition.methodology.activationRationale,canEditProfiles(),true)}</section>
+      <section class="builder-card"><div class="builder-section-heading"><b>${tr('builder.cautions')}</b></div>${cautions.length ? cautions.map(item => `<div class="diagnostic warning">⚠ ${escHtml(item)}</div>`).join('') : '<p>—</p>'}</section>
+    </div>
+    ${renderProfileDiagnostics(validation)}
   </div>`;
 }
 
@@ -146,10 +149,13 @@ function renderProfileRuleNode(node, path, editable) {
   const label = node.type === 'indicatorRef'
     ? `${node.indicatorId} · ${INDICATOR_DEFS[node.indicatorId]?.name || node.label || 'Indicador'}`
     : BLOCK_DEFINITIONS[node.type]?.label || node.type;
+  const criterion = node.type === 'indicatorRef' && INDICATOR_DEFS[node.indicatorId]
+    ? INDICATOR_DEFS[node.indicatorId].note(T())
+    : '';
   return `<div class="profile-rule-node ${selected ? 'selected' : ''} family-${BLOCK_DEFINITIONS[node.type]?.family || 'input'}">
     <div class="profile-rule-node-head" onclick="profileSelectActivationNode(${profilePathAttribute(path)})">
       <span class="ast-branch">${path.length ? '└─' : 'ROOT'}</span><b>${escHtml(label)}</b>
-      ${node.type === 'indicatorRef' ? '<span class="profile-value-mode">RIESGO SÍ/NO</span>' : ''}
+      ${node.type === 'indicatorRef' ? `<span class="condition-criterion">${escHtml(criterion)} · ${tr('builder.trueCondition')}</span>` : ''}
       <button ${editable && path.length ? '' : 'disabled'} onclick="event.stopPropagation();profileRemoveActivationNode(${profilePathAttribute(path)})" title="Eliminar">×</button>
     </div>
     ${children ? `<div class="ast-children">${children}</div>` : ''}
@@ -161,13 +167,13 @@ function renderProfileVariables(definition, weights, editable) {
   const secondary = new Set(definition.methodology.secondaryIndicators || []);
   return definition.prioritizationExpression.operands.map((node,index) => {
     const id = definition.prioritizationExpression.weightKeys[index];
-    const role = primary.has(id) ? 'Primario' : secondary.has(id) ? 'Secundario' : 'Añadido';
+  const role = primary.has(id) ? tr('builder.primaryRole') : secondary.has(id) ? tr('builder.secondaryRole') : tr('builder.addedRole');
     return `<div class="profile-variable-row ${weights[id] === 0 ? 'zero' : ''}">
       <span class="badge ${primary.has(id) ? 'badge-pri' : 'badge-sec'}">${id}</span>
       <span class="profile-variable-name">${escHtml(INDICATOR_DEFS[id]?.name || node.label || id)}</span>
       <span class="profile-variable-role">${role}</span>
-      <span class="profile-variable-weight">${(weights[id] * 100).toFixed(1)}% inicial</span>
-      <button class="btn btn-secondary btn-sm" ${editable && definition.prioritizationExpression.operands.length > 1 ? '' : 'disabled'} onclick="profileRemovePriorityIndicator('${id}')">Quitar</button>
+      <span class="profile-variable-weight">${(weights[id] * 100).toFixed(1)}% ${tr('builder.initial')}</span>
+      <button class="btn btn-secondary btn-sm" ${editable && definition.prioritizationExpression.operands.length > 1 ? '' : 'disabled'} onclick="profileRemovePriorityIndicator('${id}')">${tr('builder.remove')}</button>
     </div>`;
   }).join('');
 }
@@ -191,7 +197,7 @@ function renderProfilePreview(definition, weights) {
       const context = profileDefinitionContext(definition, household, weights);
       const active = evaluateExpression(definition.activationExpression, context).value;
       const score = Number(evaluateExpression(expression, context).value) || 0;
-      return `<div class="profile-preview-household ${active ? 'active' : ''}"><b>${escHtml(household.nombre)}</b><span>${active ? 'ACTIVO' : 'No activo'}</span><strong>${(score * 100).toFixed(0)}%</strong></div>`;
+      return `<div class="profile-preview-household ${active ? 'active' : ''}"><b>${escHtml(household.nombre)}</b><span>${active ? tr('builder.active') : tr('builder.inactive')}</span><strong>${(score * 100).toFixed(0)}%</strong></div>`;
     } catch (error) {
       return `<div class="profile-preview-household error"><b>${escHtml(household.nombre)}</b><span>Error</span><strong>—</strong></div>`;
     }
@@ -199,7 +205,7 @@ function renderProfilePreview(definition, weights) {
 }
 
 function renderProfileDiagnostics(validation) {
-  const success = validation.valid ? '<div class="diagnostic ok">✓ Regla activadora booleana y priorización ponderable válidas.</div>' : '';
+  const success = validation.valid ? `<div class="diagnostic ok">✓ ${tr('builder.valid')}</div>` : '';
   return `<div class="diagnostics">${success}${validation.errors.map(message => `<div class="diagnostic error">✕ ${escHtml(message)}</div>`).join('')}${validation.warnings.map(message => `<div class="diagnostic warning">⚠ ${escHtml(message)}</div>`).join('')}</div>`;
 }
 

@@ -20,8 +20,10 @@ const context = vm.createContext({
     getElementById:()=>({innerHTML:'',style:{},setAttribute(){},removeAttribute(){},classList:{add(){},remove(){},toggle(){}},focus(){}}),
     addEventListener(){},
     querySelector(){ return null; },
+    querySelectorAll(){ return []; },
     createElement(){ return {click(){},style:{}}; },
     body:{appendChild(){}},
+    documentElement:{lang:'es'},
   },
   localStorage:{getItem:key=>localStorageData.get(key) ?? null,setItem:(key,value)=>localStorageData.set(key,String(value))},
   setTimeout, clearTimeout,
@@ -50,9 +52,12 @@ const renderedProfileBuilder = vm.runInContext(`(() => {
 })()`, context);
 assert.match(renderedProfileBuilder, /Construcción de perfiles/);
 assert.match(renderedProfileBuilder, /Regla activadora/);
-assert.match(renderedProfileBuilder, /Variables ponderables/);
+assert.match(renderedProfileBuilder, /Variables que ponderarán/);
+assert.equal(vm.runInContext(`Object.keys(I18N_MESSAGES.es).every(key => key in I18N_MESSAGES.it && key in I18N_MESSAGES.en)`, context), true);
+assert.equal(vm.runInContext(`(setLanguage('it'), tr('builder.title'))`, context), 'Costruzione dei profili');
+assert.equal(vm.runInContext(`(setLanguage('en'), tr('builder.title'))`, context), 'Profile construction');
 assert.deepEqual(localScripts, [
-  'data.js','indicator-units.js','indicator-expression.js','indicator-evaluator.js',
+  'i18n.js','data.js','indicator-units.js','indicator-expression.js','indicator-evaluator.js',
   'indicator-dependencies.js','indicator-serialization.js','profile-definitions.js','app.js','profile-builder.js',
 ]);
 

@@ -25,6 +25,16 @@ Base conservada: `main` en el commit previo a esta entrega.
 18. **Migración no destructiva.** Los borradores V1 de condiciones se convierten a comparaciones y AND/OR, conservando el original como `legacyDefinition` y marcándolo para revisión.
 19. **Formalización prudente.** Solo I2 e I8 reciben AST inicial porque sus reglas ya existían con precisión suficiente; el resto queda explícitamente pendiente para no inventar metodología.
 20. **Tests unitarios del motor.** Se cubren aritmética, división, árboles anidados, comparación, lógica, IF, dependencias, ciclos, tipos, unidades, división por cero, migración y round-trip JSON.
+21. **Fase 0 corregida a perfiles.** La entrada ya no construye indicadores; combina indicadores existentes para crear P1–P6 y perfiles nuevos.
+22. **Seis propuestas precargadas.** P1–P6 se inicializan con los indicadores primarios y secundarios descritos en D1.5 v2 y en la propuesta de perfiles v1.1.
+23. **Activación separada de priorización.** Una expresión booleana decide si el perfil aplica y una suma ponderada calcula la intensidad solo cuando está activo.
+24. **Reglas preliminares visibles.** Pobreza oculta exige infraconsumo, descarte de eficiencia y restricción económica; fragilidad puede activarse sin renta baja; P5 muestra el conflicto de I19; I13/I14 quedan pendientes en P6.
+25. **Continuidad con la fase experta.** Las variables y pesos iniciales del perfil pasan al etiquetado y a la optimización; los perfiles nuevos publicados también aparecen en esa fase.
+26. **Motor de perfiles y tests.** Se añaden evaluación de reglas activadoras, gradiente numérico sobre la regla completa, serialización V2 y pruebas de los seis perfiles.
+27. **Diseño compacto a dos columnas.** Identidad y composición se ven simultáneamente; variables y vista previa ocupan la segunda fila para reducir el scroll.
+28. **Regla activadora compacta.** El árbol tiene altura limitada y cada hoja muestra el criterio concreto del indicador que devuelve TRUE, eliminando la etiqueta ambigua “riesgo sí/no”.
+29. **Metodología en sección aparte.** Fuentes, versión del modelo, justificación y cautelas se trasladan a una pestaña independiente del espacio de edición.
+30. **Soporte multidioma.** Se añade selector persistente ES/IT/EN en el acceso y en la aplicación, con navegación y constructor de perfiles traducidos.
 
 ## Cómo volver atrás
 
