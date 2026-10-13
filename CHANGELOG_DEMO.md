@@ -48,6 +48,7 @@ Base conservada: `main` en el commit previo a esta entrega.
 41. **Estado «Aprobado».** El estado de los perfiles listos para la fase experta pasa de «Publicado» a «Aprobado» (IT «Approvato», EN «Approved»), igual que el botón y el resumen lateral.
 42. **Etiquetado siempre visible.** Se elimina el bloque introductorio de la evaluación experta y los botones de nivel 0–4 pasan a la fila superior, junto al progreso de etiquetado, para que se vean durante el Auto-demo.
 43. **Sidebar y pesos más limpios.** El panel de datos (demo, subir XLSX, plantilla) pasa a una línea plegable con los botones en fila, se oculta la ayuda redundante del buscador y se elimina el banner introductorio del ajuste de pesos, para ver más hogares en la lista lateral.
+44. **Sliders de pesos más largos.** En el ajuste de pesos la tabla de hogares pasa a una columna estrecha de ancho fijo y la columna de pesos ocupa el resto, con sliders alineados y de mayor recorrido.
 
 ## Cómo volver atrás
 
