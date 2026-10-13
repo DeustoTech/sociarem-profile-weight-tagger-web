@@ -1,0 +1,10 @@
+services:
+  web:
+    image: ${REGISTRY_NS}/${IMAGE_NAME}:${IMAGE_TAG}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: ${IMAGE_NAME}
+    ports:
+      - "${HOST_PORT:-8080}:80"
+    restart: unless-stopped

@@ -1,0 +1,5 @@
+.git
+docker/.env
+tests
+*.md
+.github
