@@ -537,21 +537,19 @@ function renderPhase1(area) {
       ${nextActive !== null ? `<div class="builder-actions"><button class="btn btn-accent2 btn-sm" onclick="selectHousehold(${nextActive})">${tr('eval.nextActive')}</button></div>` : ''}
     </div>`;
 
+  // Progreso y etiquetado 0–4 en la misma fila superior, visibles durante el Auto-demo.
   area.innerHTML = `
-    <div class="phase-intro">
-      <div><b>${escHtml(tr('workflow.expert-evaluation.title'))}</b> · ${escHtml(tr('model.profileModel', MODEL_INFO.profileModel))}</div>
-      <div>${state.activeProfile === 'P5' ? tr('eval.p5Warning') : tr('eval.introNote')}</div>
-      ${canEvaluate() ? '' : `<div class="permission-note">${tr('eval.readOnly')}</div>`}
-    </div>
-    <div class="progress-card">
-      <div class="section-heading" style="margin-bottom:6px">${tr('eval.progress')} <span class="text-muted" style="font-weight:400;text-transform:none">· ${tr('eval.progressHint')}</span></div>
-      <div class="progress-grid">${progressHtml}</div>
+    ${canEvaluate() ? '' : `<div class="permission-note mb-2">${tr('eval.readOnly')}</div>`}
+    <div class="eval-top-row">
+      <div class="progress-card">
+        <div class="section-heading" style="margin-bottom:6px">${tr('eval.progress')} <span class="text-muted" style="font-weight:400;text-transform:none">· ${tr('eval.progressHint')}</span></div>
+        <div class="progress-grid">${progressHtml}</div>
+      </div>
+      ${labelCard}
     </div>
 
     <div class="section-heading mb-2">${state.activeProfile} · ${escHtml(translatedProfileField(state.activeProfile,'short',profDef.short))}</div>
     <div class="indicator-grid mb-3">${cards}</div>
-
-    ${labelCard}
   `;
 }
 

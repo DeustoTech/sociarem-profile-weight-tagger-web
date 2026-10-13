@@ -46,6 +46,7 @@ Base conservada: `main` en el commit previo a esta entrega.
 39. **Etiquetado solo de perfiles activados.** Si la regla activadora devuelve FALSE, el hogar se muestra como «No activo», no ofrece botones de nivel, no cuenta en el progreso ni en la optimización y queda fuera de Auto-demo y Asignar todo.
 40. **20 hogares sintéticos.** Diez hogares nuevos (HOG-11 a HOG-20) con etiquetas de referencia, diseñados para activar los perfiles con poca cobertura: P1 pasa de 6 a 12 hogares activados, P2 de 7 a 12, P3 de 5 a 7, P4 de 5 a 12, P5 de 4 a 8 y P6 de 5 a 11. La paridad Python ↔ JS se mantiene sobre los 10 hogares originales.
 41. **Estado «Aprobado».** El estado de los perfiles listos para la fase experta pasa de «Publicado» a «Aprobado» (IT «Approvato», EN «Approved»), igual que el botón y el resumen lateral.
+42. **Etiquetado siempre visible.** Se elimina el bloque introductorio de la evaluación experta y los botones de nivel 0–4 pasan a la fila superior, junto al progreso de etiquetado, para que se vean durante el Auto-demo.
 
 ## Cómo volver atrás
 
