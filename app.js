@@ -24,6 +24,7 @@ const state = {
       liveWeights: null,
     }])
   ),
+  dataPanelOpen: false,
   _autoTimer: null,
 };
 
@@ -716,11 +717,7 @@ function renderPhase2(area) {
   const versionsHtml = buildWeightVersionPanel();
 
   area.innerHTML = `
-    <div class="phase-intro">
-      <div><b>${tr('p2.title')}</b></div>
-      <div>${tr('p2.zeroNote')}</div>
-      ${canEvaluate() ? '' : `<div class="permission-note">${tr('p2.readOnly')}</div>`}
-    </div>
+    ${canEvaluate() ? '' : `<div class="permission-note mb-2">${tr('p2.readOnly')}</div>`}
     <div class="phase2-layout">
 
       <!-- Panel izquierdo -->
@@ -1188,15 +1185,17 @@ function download(filename, content, mime) {
 function renderDataPanel() {
   const el = document.getElementById('data-panel');
   if (!el) return;
+  // Panel compacto y plegable: deja casi todo el alto del sidebar a la lista de hogares.
   el.innerHTML = `
-    <div class="data-panel-header"><span class="data-panel-title">${tr('data.title')}</span></div>
-    <div class="data-panel-info">${escHtml(datasetLabelText())}</div>
-    ${state.hasGT ? '' : `<div class="data-no-gt">${tr('data.noGt')}</div>`}
-    <div class="data-panel-btns">
-      <button class="btn btn-secondary btn-sm btn-full mb-1" onclick="useDemoData()">${tr('data.demo')}</button>
-      <button class="btn btn-secondary btn-sm btn-full mb-1" onclick="openXlsxDialog()">${tr('data.upload')}</button>
-      <button class="btn btn-secondary btn-sm btn-full" onclick="downloadTemplate()">${tr('data.template')}</button>
-    </div>
+    <details class="data-panel-details" ${state.dataPanelOpen ? 'open' : ''} ontoggle="state.dataPanelOpen = this.open">
+      <summary><span class="data-panel-title">${tr('data.title')}</span><span class="data-panel-info">${escHtml(datasetLabelText())}</span></summary>
+      ${state.hasGT ? '' : `<div class="data-no-gt">${tr('data.noGt')}</div>`}
+      <div class="data-panel-btns">
+        <button class="btn btn-secondary btn-sm" title="${escHtml(tr('data.demo'))}" onclick="useDemoData()">${tr('data.demoShort')}</button>
+        <button class="btn btn-secondary btn-sm" title="${escHtml(tr('data.upload'))}" onclick="openXlsxDialog()">${tr('data.uploadShort')}</button>
+        <button class="btn btn-secondary btn-sm" title="${escHtml(tr('data.template'))}" onclick="downloadTemplate()">${tr('data.templateShort')}</button>
+      </div>
+    </details>
   `;
   const refWrap = document.getElementById('ref-toggle-wrap');
   if (refWrap) {

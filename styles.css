@@ -1597,3 +1597,14 @@ textarea.form-control { resize: vertical; min-height: 58px; }
 .eval-top-row .ordinal-buttons { margin-bottom:6px; }
 .eval-top-row .ordinal-btn { padding:7px 4px; }
 @media (max-width: 1100px) { .eval-top-row { grid-template-columns:1fr; } }
+
+/* ─── Panel de datos compacto (plegable) ─── */
+.data-panel { padding:4px 10px; }
+.data-panel-details > summary { display:flex; align-items:baseline; gap:8px; cursor:pointer; list-style:none; padding:3px 0; }
+.data-panel-details > summary::-webkit-details-marker { display:none; }
+.data-panel-details > summary::before { content:'▸'; font-size:.7rem; color:var(--muted); }
+.data-panel-details[open] > summary::before { content:'▾'; }
+.data-panel-details .data-panel-info { margin:0; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.data-panel-details .data-panel-btns { flex-direction:row; gap:4px; margin:4px 0 4px; }
+.data-panel-details .data-panel-btns .btn { flex:1; padding:3px 4px; font-size:.7rem; white-space:nowrap; }
+.sidebar-search-hint { display:none !important; }
