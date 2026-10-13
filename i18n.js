@@ -79,6 +79,152 @@ const I18N_PROFILE_CONTENT = {
   },
 };
 
+// ─── Textos de las fases operativas (evaluación, consenso, roadmap, datos) ──
+
+const I18N_MESSAGES_APP = {
+  es:{
+    'app.title':'SOCIAREM · Perfiles de vulnerabilidad · Piloto Messina','sidebar.sub':'Piloto Messina · PoC','sidebar.search':'Buscar hogares…','sidebar.searchHint':'ID o nombre del hogar','nav.phases':'Fases de la metodología',
+    'role.demo':'Demo (todos los permisos)','login.errUser':'Introduce un nombre de evaluador.','login.errPassword':'Contraseña incorrecta.',
+    'model.profileModel':'v0.2 preliminar · P1–P6 basados en D1.5',
+    'sidebar.progress':'{n}/{total} etiquetados ({pct}%)','sidebar.inactiveCount':'{n} hogares no activan este perfil y no requieren etiqueta','sidebar.backPhase1':'← Volver a fase 1','sidebar.assignAll':'⚡ Asignar todo ({n} perfiles)','sidebar.assignAllTitle':'Copia las etiquetas de referencia a todos los perfiles, solo en los hogares donde cada perfil está activado','sidebar.optimize':'⟳ Optimizar pesos','sidebar.optimizing':'⟳ Optimizando…','sidebar.needThree':'Necesitas ≥3 etiquetas',
+    'eval.p5Warning':'<b>Atención:</b> P5 conserva I19 por compatibilidad con el modelo provisional; el catálogo V3.0 lo marca como retirado.','eval.introNote':'Esta pantalla recoge propuestas individuales; el consenso se construye en la fase siguiente. Solo se etiquetan los hogares en los que el perfil está activado.','eval.readOnly':'Este rol puede consultar, pero no etiquetar.','eval.progress':'Progreso de etiquetado','eval.progressHint':'etiquetados / activados','eval.hint':'Evalúa los indicadores del perfil. Tu criterio prima sobre los datos.','eval.level':'Nivel','eval.unlabeled':'Sin etiquetar','eval.notActiveTitle':'Perfil no activado para este hogar','eval.notActiveBody':'La regla activadora de {profile} ({rule}) devuelve FALSE para este hogar, así que no hay que etiquetarlo. En este perfil cuenta como no vulnerable.','eval.nextActive':'Siguiente hogar activado →','eval.derived':'derivado','eval.activeTag':'Activo',
+    'notify.cannotEvaluate':'Este rol no puede modificar evaluaciones.','notify.noReference':'Este perfil no tiene etiquetas de referencia.','notify.noReferenceDataset':'El dataset actual no tiene etiquetas de referencia.','notify.assignedAll':'Etiquetas de referencia asignadas en {n} perfiles (solo hogares activados).','notify.cannotOptimize':'Este rol no puede optimizar pesos.','notify.needThree':'Necesitas al menos 3 hogares etiquetados para optimizar.','notify.inactiveNoLabel':'El perfil no está activado para este hogar: no requiere etiqueta.','notify.minOneWeight':'Debe quedar al menos un indicador con peso mayor que cero.',
+    'p2.title':'Ajuste de pesos · propuesta individual','p2.zeroNote':'Un peso de 0 excluye el indicador del cálculo de este perfil. El resto se normaliza automáticamente al 100%.','p2.readOnly':'Este rol puede consultar, pero no cambiar ni enviar pesos.','p2.expert':'Experto','p2.exact':'Exactas','p2.weights':'Pesos','p2.includeRef':'Incluir ref.','p2.sendConsensus':'Enviar a consenso →','p2.colHousehold':'Hogar','p2.colScore':'Score','p2.colLevel':'Nivel','p2.colExpert':'Experto','p2.colError':'Error','p2.notActivated':'Perfil no activado para este hogar',
+    'ver.title':'Versiones','ver.none':'Sin versiones guardadas','ver.namePlaceholder':'Nombre (opcional)','ver.save':'Guardar','ver.load':'↑ Cargar','ver.delete':'✕ Eliminar','ver.export':'↓ Exportar','ver.cannotSave':'Este rol no puede guardar versiones.','ver.saved':'Versión guardada: {name}','ver.select':'Selecciona una versión.','ver.notFound':'Versión no encontrada.','ver.loaded':'Cargados: {name}','ver.cannotDelete':'Este rol no puede eliminar versiones.','ver.deleted':'Versión eliminada.','ver.noneFor':'No hay versiones para {profile}.',
+    'cons.cannotSubmit':'Este rol no puede enviar propuestas.','cons.sent':'Propuesta de {profile} enviada al espacio de consenso.','cons.example':'Ejemplo','cons.loaded':'Se han cargado 3 propuestas sintéticas, claramente marcadas.','cons.title':'Consenso experto · {profile}','cons.empty':'Aún no hay propuestas. Envía pesos desde la fase experta o carga ejemplos sintéticos para enseñar la reunión sin atribuir decisiones a personas reales.','cons.back':'← Volver a expertos','cons.loadSynthetic':'Cargar 3 propuestas sintéticas','cons.syntheticTag':'muestra sintética','cons.note':'<strong>Prototipo de deliberación:</strong> la mediana es un punto de partida, no una decisión automática. Los desacuerdos y pesos cero permanecen visibles.','cons.proposals':'Propuestas','cons.profile':'Perfil','cons.highSpread':'Dispersión alta','cons.method':'Método candidato','cons.median':'Mediana','cons.compare':'Comparación de pesos','cons.thIndicator':'Indicador','cons.thMin':'Mín.','cons.thCandidate':'Candidata','cons.thMax':'Máx.','cons.thSpread':'Dispersión','cons.thZeros':'Ceros','cons.reload':'Recargar muestras','cons.saveCandidate':'Guardar candidata para deliberación','cons.received':'Propuestas recibidas','cons.safeguards':'Salvaguardas','cons.guard1':'No ocultar desacuerdos tras un promedio.','cons.guard2':'Revisar los indicadores con dispersión alta.','cons.guard3':'No usar participación comunitaria como mérito.','cons.guard4':'Registrar motivación y aprobación humana.','cons.onlyFacilitator':'Este rol no puede guardar la candidata.','cons.savedCandidate':'Candidata {profile} guardada como pendiente de deliberación.','cons.sidebarCount':'{n} propuestas en {profile}','cons.canSave':'Puedes guardar una versión candidata.','cons.cannotSave':'La facilitación guarda la candidatura; los expertos aportan propuestas.',
+    'future.expected':'Resultado esperado','future.who':'Quién participa','future.safeguards':'Salvaguardas','future.note':'Esta fase se muestra para explicar el proceso completo, pero aún no permite introducir ni aprobar datos.','future.sidebarNote':'Fase visible para explicar el recorrido completo. Todavía no modifica datos.',
+    'data.title':'Datos','data.noGt':'Sin etiquetas de referencia','data.demo':'↺ Datos demo','data.upload':'↑ Subir XLSX','data.template':'↓ Descargar plantilla','data.demoLabel':'Demo · {n} hogares','data.fileLabel':'{file} · {n} hogares','data.readError':'Error al leer el archivo XLSX: {error}','data.empty':'El XLSX está vacío.','data.missing':'El XLSX no es válido. Faltan columnas: {cols}','data.binary':'Etiquetas binarias detectadas. Se interpretará 1 como Muy vulnerable (4).',
+    'weights.cannotImport':'Este rol no puede importar pesos.','weights.imported':'Pesos importados correctamente.','weights.importError':'Error al importar pesos: {error}',
+    'builder.none':'Ninguno','builder.alreadyIncluded':'Ese indicador ya está incluido.','builder.fixErrors':'Corrige los errores antes de guardar.','builder.savedAs':'{profile} guardado como {status}.','builder.imported':'{profile}: JSON importado; revisa y guarda.','builder.importError':'No se pudo importar: {error}','builder.activeCount':'{n}/{total} hogares activan el perfil','builder.needsWeighted':'La priorización necesita al menos un bloque WEIGHTED SUM para que la fase experta pueda ponderar variables.','builder.notExecutable':'Estos indicadores aún no tienen normalización ejecutable para perfiles: {ids}.',
+  },
+  it:{
+    'app.title':'SOCIAREM · Profili di vulnerabilità · Pilota Messina','sidebar.sub':'Pilota Messina · PoC','sidebar.search':'Cerca nuclei…','sidebar.searchHint':'ID o nome del nucleo','nav.phases':'Fasi della metodologia',
+    'role.demo':'Demo (tutti i permessi)','login.errUser':'Inserisci il nome del valutatore.','login.errPassword':'Password errata.',
+    'model.profileModel':'v0.2 preliminare · P1–P6 basati su D1.5',
+    'sidebar.progress':'{n}/{total} etichettati ({pct}%)','sidebar.inactiveCount':'{n} nuclei non attivano questo profilo e non richiedono etichetta','sidebar.backPhase1':'← Torna alla fase 1','sidebar.assignAll':'⚡ Assegna tutto ({n} profili)','sidebar.assignAllTitle':'Copia le etichette di riferimento in tutti i profili, solo nei nuclei in cui ciascun profilo è attivato','sidebar.optimize':'⟳ Ottimizza pesi','sidebar.optimizing':'⟳ Ottimizzazione…','sidebar.needThree':'Servono ≥3 etichette',
+    'eval.p5Warning':'<b>Attenzione:</b> P5 mantiene I19 per compatibilità con il modello provvisorio; il catalogo V3.0 lo indica come ritirato.','eval.introNote':'Questa schermata raccoglie proposte individuali; il consenso si costruisce nella fase successiva. Si etichettano solo i nuclei in cui il profilo è attivato.','eval.readOnly':'Questo ruolo può consultare, ma non etichettare.','eval.progress':'Avanzamento dell’etichettatura','eval.progressHint':'etichettati / attivati','eval.hint':'Valuta gli indicatori del profilo. Il tuo giudizio prevale sui dati.','eval.level':'Livello','eval.unlabeled':'Senza etichetta','eval.notActiveTitle':'Profilo non attivato per questo nucleo','eval.notActiveBody':'La regola di attivazione di {profile} ({rule}) restituisce FALSE per questo nucleo, quindi non va etichettato. In questo profilo conta come non vulnerabile.','eval.nextActive':'Prossimo nucleo attivato →','eval.derived':'derivato','eval.activeTag':'Attivo',
+    'notify.cannotEvaluate':'Questo ruolo non può modificare le valutazioni.','notify.noReference':'Questo profilo non ha etichette di riferimento.','notify.noReferenceDataset':'Il dataset attuale non ha etichette di riferimento.','notify.assignedAll':'Etichette di riferimento assegnate in {n} profili (solo nuclei attivati).','notify.cannotOptimize':'Questo ruolo non può ottimizzare i pesi.','notify.needThree':'Servono almeno 3 nuclei etichettati per ottimizzare.','notify.inactiveNoLabel':'Il profilo non è attivato per questo nucleo: non richiede etichetta.','notify.minOneWeight':'Almeno un indicatore deve avere un peso maggiore di zero.',
+    'p2.title':'Regolazione dei pesi · proposta individuale','p2.zeroNote':'Un peso pari a 0 esclude l’indicatore dal calcolo di questo profilo. Gli altri vengono normalizzati automaticamente al 100%.','p2.readOnly':'Questo ruolo può consultare, ma non modificare né inviare pesi.','p2.expert':'Esperto','p2.exact':'Esatte','p2.weights':'Pesi','p2.includeRef':'Includi rif.','p2.sendConsensus':'Invia al consenso →','p2.colHousehold':'Nucleo','p2.colScore':'Punteggio','p2.colLevel':'Livello','p2.colExpert':'Esperto','p2.colError':'Errore','p2.notActivated':'Profilo non attivato per questo nucleo',
+    'ver.title':'Versioni','ver.none':'Nessuna versione salvata','ver.namePlaceholder':'Nome (facoltativo)','ver.save':'Salva','ver.load':'↑ Carica','ver.delete':'✕ Elimina','ver.export':'↓ Esporta','ver.cannotSave':'Questo ruolo non può salvare versioni.','ver.saved':'Versione salvata: {name}','ver.select':'Seleziona una versione.','ver.notFound':'Versione non trovata.','ver.loaded':'Caricati: {name}','ver.cannotDelete':'Questo ruolo non può eliminare versioni.','ver.deleted':'Versione eliminata.','ver.noneFor':'Nessuna versione per {profile}.',
+    'cons.cannotSubmit':'Questo ruolo non può inviare proposte.','cons.sent':'Proposta di {profile} inviata allo spazio di consenso.','cons.example':'Esempio','cons.loaded':'Sono state caricate 3 proposte sintetiche, chiaramente contrassegnate.','cons.title':'Consenso tra esperti · {profile}','cons.empty':'Non ci sono ancora proposte. Invia pesi dalla fase esperti o carica esempi sintetici per mostrare la riunione senza attribuire decisioni a persone reali.','cons.back':'← Torna agli esperti','cons.loadSynthetic':'Carica 3 proposte sintetiche','cons.syntheticTag':'esempio sintetico','cons.note':'<strong>Prototipo di deliberazione:</strong> la mediana è un punto di partenza, non una decisione automatica. Disaccordi e pesi zero restano visibili.','cons.proposals':'Proposte','cons.profile':'Profilo','cons.highSpread':'Dispersione alta','cons.method':'Metodo candidato','cons.median':'Mediana','cons.compare':'Confronto dei pesi','cons.thIndicator':'Indicatore','cons.thMin':'Min.','cons.thCandidate':'Candidata','cons.thMax':'Max.','cons.thSpread':'Dispersione','cons.thZeros':'Zeri','cons.reload':'Ricarica esempi','cons.saveCandidate':'Salva candidata per la deliberazione','cons.received':'Proposte ricevute','cons.safeguards':'Salvaguardie','cons.guard1':'Non nascondere i disaccordi dietro una media.','cons.guard2':'Rivedere gli indicatori con dispersione alta.','cons.guard3':'Non usare la partecipazione comunitaria come merito.','cons.guard4':'Registrare motivazione e approvazione umana.','cons.onlyFacilitator':'Questo ruolo non può salvare la candidata.','cons.savedCandidate':'Candidata {profile} salvata in attesa di deliberazione.','cons.sidebarCount':'{n} proposte in {profile}','cons.canSave':'Puoi salvare una versione candidata.','cons.cannotSave':'La facilitazione salva la candidata; gli esperti inviano proposte.',
+    'future.expected':'Risultato atteso','future.who':'Chi partecipa','future.safeguards':'Salvaguardie','future.note':'Questa fase è mostrata per spiegare l’intero processo, ma non consente ancora di inserire o approvare dati.','future.sidebarNote':'Fase visibile per spiegare l’intero percorso. Non modifica ancora i dati.',
+    'data.title':'Dati','data.noGt':'Nessuna etichetta di riferimento','data.demo':'↺ Dati demo','data.upload':'↑ Carica XLSX','data.template':'↓ Scarica modello','data.demoLabel':'Demo · {n} nuclei','data.fileLabel':'{file} · {n} nuclei','data.readError':'Errore nella lettura del file XLSX: {error}','data.empty':'Il file XLSX è vuoto.','data.missing':'Il file XLSX non è valido. Colonne mancanti: {cols}','data.binary':'Etichette binarie rilevate. 1 sarà interpretato come Molto vulnerabile (4).',
+    'weights.cannotImport':'Questo ruolo non può importare pesi.','weights.imported':'Pesi importati correttamente.','weights.importError':'Errore nell’importazione dei pesi: {error}',
+    'builder.none':'Nessuno','builder.alreadyIncluded':'Questo indicatore è già incluso.','builder.fixErrors':'Correggi gli errori prima di salvare.','builder.savedAs':'{profile} salvato come {status}.','builder.imported':'{profile}: JSON importato; controlla e salva.','builder.importError':'Impossibile importare: {error}','builder.activeCount':'{n}/{total} nuclei attivano il profilo','builder.needsWeighted':'La prioritizzazione richiede almeno un blocco WEIGHTED SUM affinché la fase esperti possa ponderare le variabili.','builder.notExecutable':'Questi indicatori non hanno ancora una normalizzazione eseguibile per i profili: {ids}.',
+  },
+  en:{
+    'app.title':'SOCIAREM · Vulnerability profiles · Messina pilot','sidebar.sub':'Messina pilot · PoC','sidebar.search':'Search households…','sidebar.searchHint':'Household ID or name','nav.phases':'Methodology phases',
+    'role.demo':'Demo (all permissions)','login.errUser':'Enter an evaluator name.','login.errPassword':'Incorrect password.',
+    'model.profileModel':'v0.2 preliminary · P1–P6 based on D1.5',
+    'sidebar.progress':'{n}/{total} labelled ({pct}%)','sidebar.inactiveCount':'{n} households do not activate this profile and need no label','sidebar.backPhase1':'← Back to phase 1','sidebar.assignAll':'⚡ Assign all ({n} profiles)','sidebar.assignAllTitle':'Copies the reference labels into every profile, only for households where each profile is activated','sidebar.optimize':'⟳ Optimise weights','sidebar.optimizing':'⟳ Optimising…','sidebar.needThree':'You need ≥3 labels',
+    'eval.p5Warning':'<b>Note:</b> P5 keeps I19 for compatibility with the provisional model; the V3.0 catalogue marks it as retired.','eval.introNote':'This screen collects individual proposals; consensus is built in the next phase. Only households that activate the profile are labelled.','eval.readOnly':'This role can view but not label.','eval.progress':'Labelling progress','eval.progressHint':'labelled / activated','eval.hint':'Assess the profile indicators. Your judgement takes precedence over the data.','eval.level':'Level','eval.unlabeled':'Not labelled','eval.notActiveTitle':'Profile not activated for this household','eval.notActiveBody':'The {profile} activation rule ({rule}) returns FALSE for this household, so it does not need a label. For this profile it counts as not vulnerable.','eval.nextActive':'Next activated household →','eval.derived':'derived','eval.activeTag':'Active',
+    'notify.cannotEvaluate':'This role cannot change evaluations.','notify.noReference':'This profile has no reference labels.','notify.noReferenceDataset':'The current dataset has no reference labels.','notify.assignedAll':'Reference labels assigned in {n} profiles (activated households only).','notify.cannotOptimize':'This role cannot optimise weights.','notify.needThree':'You need at least 3 labelled households to optimise.','notify.inactiveNoLabel':'The profile is not activated for this household: no label needed.','notify.minOneWeight':'At least one indicator must keep a weight above zero.',
+    'p2.title':'Weight adjustment · individual proposal','p2.zeroNote':'A weight of 0 excludes the indicator from this profile’s calculation. The rest are automatically normalised to 100%.','p2.readOnly':'This role can view but cannot change or submit weights.','p2.expert':'Expert','p2.exact':'Exact','p2.weights':'Weights','p2.includeRef':'Include ref.','p2.sendConsensus':'Send to consensus →','p2.colHousehold':'Household','p2.colScore':'Score','p2.colLevel':'Level','p2.colExpert':'Expert','p2.colError':'Error','p2.notActivated':'Profile not activated for this household',
+    'ver.title':'Versions','ver.none':'No saved versions','ver.namePlaceholder':'Name (optional)','ver.save':'Save','ver.load':'↑ Load','ver.delete':'✕ Delete','ver.export':'↓ Export','ver.cannotSave':'This role cannot save versions.','ver.saved':'Version saved: {name}','ver.select':'Select a version.','ver.notFound':'Version not found.','ver.loaded':'Loaded: {name}','ver.cannotDelete':'This role cannot delete versions.','ver.deleted':'Version deleted.','ver.noneFor':'No versions for {profile}.',
+    'cons.cannotSubmit':'This role cannot submit proposals.','cons.sent':'{profile} proposal sent to the consensus space.','cons.example':'Example','cons.loaded':'3 clearly marked synthetic proposals have been loaded.','cons.title':'Expert consensus · {profile}','cons.empty':'There are no proposals yet. Submit weights from the expert phase or load synthetic examples to present the meeting without attributing decisions to real people.','cons.back':'← Back to experts','cons.loadSynthetic':'Load 3 synthetic proposals','cons.syntheticTag':'synthetic sample','cons.note':'<strong>Deliberation prototype:</strong> the median is a starting point, not an automatic decision. Disagreements and zero weights remain visible.','cons.proposals':'Proposals','cons.profile':'Profile','cons.highSpread':'High spread','cons.method':'Candidate method','cons.median':'Median','cons.compare':'Weight comparison','cons.thIndicator':'Indicator','cons.thMin':'Min.','cons.thCandidate':'Candidate','cons.thMax':'Max.','cons.thSpread':'Spread','cons.thZeros':'Zeros','cons.reload':'Reload samples','cons.saveCandidate':'Save candidate for deliberation','cons.received':'Proposals received','cons.safeguards':'Safeguards','cons.guard1':'Do not hide disagreement behind an average.','cons.guard2':'Review indicators with high spread.','cons.guard3':'Do not treat community participation as merit.','cons.guard4':'Record rationale and human approval.','cons.onlyFacilitator':'This role cannot save the candidate.','cons.savedCandidate':'{profile} candidate saved as pending deliberation.','cons.sidebarCount':'{n} proposals for {profile}','cons.canSave':'You can save a candidate version.','cons.cannotSave':'Facilitation saves the candidate; experts submit proposals.',
+    'future.expected':'Expected outcome','future.who':'Who takes part','future.safeguards':'Safeguards','future.note':'This phase is shown to explain the full process, but it does not yet allow data to be entered or approved.','future.sidebarNote':'Phase shown to explain the full journey. It does not modify data yet.',
+    'data.title':'Data','data.noGt':'No reference labels','data.demo':'↺ Demo data','data.upload':'↑ Upload XLSX','data.template':'↓ Download template','data.demoLabel':'Demo · {n} households','data.fileLabel':'{file} · {n} households','data.readError':'Error reading the XLSX file: {error}','data.empty':'The XLSX file is empty.','data.missing':'The XLSX file is not valid. Missing columns: {cols}','data.binary':'Binary labels detected. 1 will be read as Very vulnerable (4).',
+    'weights.cannotImport':'This role cannot import weights.','weights.imported':'Weights imported successfully.','weights.importError':'Error importing weights: {error}',
+    'builder.none':'None','builder.alreadyIncluded':'That indicator is already included.','builder.fixErrors':'Fix the errors before saving.','builder.savedAs':'{profile} saved as {status}.','builder.imported':'{profile}: JSON imported; review and save.','builder.importError':'Could not import: {error}','builder.activeCount':'{n}/{total} households activate the profile','builder.needsWeighted':'Prioritisation needs at least one WEIGHTED SUM block so the expert phase can weight variables.','builder.notExecutable':'These indicators do not yet have an executable normalisation for profiles: {ids}.',
+  },
+};
+for (const language of Object.keys(I18N_MESSAGES_APP)) Object.assign(I18N_MESSAGES[language], I18N_MESSAGES_APP[language]);
+
+// Ajustes de textos del constructor: los pasos 4 y 5 ya no muestran porcentajes.
+Object.assign(I18N_MESSAGES.es, {'builder.weightsHint':'Los pesos iniciales se ajustan después en la fase experta.','builder.previewHint':'Qué hogares sintéticos activan el perfil'});
+Object.assign(I18N_MESSAGES.it, {'builder.weightsHint':'I pesi iniziali vengono regolati nella fase esperti.','builder.previewHint':'Quali nuclei sintetici attivano il profilo'});
+Object.assign(I18N_MESSAGES.en, {'builder.weightsHint':'Initial weights are adjusted later in the expert phase.','builder.previewHint':'Which synthetic households activate the profile'});
+
+const I18N_LEVELS = {
+  es:[['No vulnerable','No'],['Vulnerabilidad baja','Baja'],['Vulnerabilidad media','Media'],['Vulnerabilidad alta','Alta'],['Muy vulnerable','Muy alta']],
+  it:[['Non vulnerabile','No'],['Vulnerabilità bassa','Bassa'],['Vulnerabilità media','Media'],['Vulnerabilità alta','Alta'],['Molto vulnerabile','Molto alta']],
+  en:[['Not vulnerable','None'],['Low vulnerability','Low'],['Medium vulnerability','Medium'],['High vulnerability','High'],['Very vulnerable','Very high']],
+};
+
+const I18N_VALUE_LABELS = {
+  es:{yes:'SÍ',no:'NO',month:'mes',months:'meses',year:'año',years:'años',lessYear:'< 1 año',none:'Ninguno',perMonth:'€/mes',persons:'pers.',ofThreshold:'del umbral',under:'Infraconsumo',normal:'Normal',
+    I7:['Flexible','Moderado','Rígido','Muy rígido'],I9:['Adecuada','Aceptable','Pobre','Crítica'],I10:['Eficiente','Adecuado','Deficiente','Obsoleto'],I17:['Ninguna','Térmica','Eléct. interm.','Eléct. vital'],I22:['Sólida','Moderada','Débil','Aislamiento'],I23:['Regular','Ocasional','Escasa','Nula'],I24:['Ninguna','Leve','Moderada','Severa']},
+  it:{yes:'SÌ',no:'NO',month:'mese',months:'mesi',year:'anno',years:'anni',lessYear:'< 1 anno',none:'Nessuno',perMonth:'€/mese',persons:'pers.',ofThreshold:'della soglia',under:'Sottoconsumo',normal:'Normale',
+    I7:['Flessibile','Moderato','Rigido','Molto rigido'],I9:['Adeguata','Accettabile','Scarsa','Critica'],I10:['Efficiente','Adeguato','Carente','Obsoleto'],I17:['Nessuna','Termica','Elettr. intermittente','Elettr. vitale'],I22:['Solida','Moderata','Debole','Isolamento'],I23:['Regolare','Occasionale','Scarsa','Nulla'],I24:['Nessuna','Lieve','Moderata','Grave']},
+  en:{yes:'YES',no:'NO',month:'month',months:'months',year:'year',years:'years',lessYear:'< 1 year',none:'None',perMonth:'€/month',persons:'people',ofThreshold:'of threshold',under:'Underconsumption',normal:'Normal',
+    I7:['Flexible','Moderate','Rigid','Very rigid'],I9:['Adequate','Acceptable','Poor','Critical'],I10:['Efficient','Adequate','Deficient','Obsolete'],I17:['None','Thermal','Interm. electric','Life-support electric'],I22:['Strong','Moderate','Weak','Isolation'],I23:['Regular','Occasional','Low','None'],I24:['None','Mild','Moderate','Severe']},
+};
+
+// Título largo y definición de cada indicador (tooltip ⓘ). En castellano se usa INDICATOR_DEFS.
+const I18N_INDICATOR_DETAILS = {
+  it:{
+    I1:['I1 – Reddito netto mensile equivalente','Reddito netto mensile corretto per la composizione del nucleo (ISEE). Misura la capacità economica di sostenere le spese energetiche.'],
+    I2:['I2 – Nucleo sotto la soglia di povertà relativa','Indica se il reddito equivalente è inferiore alla soglia di povertà relativa (60% della mediana). Deriva direttamente da I1 e non ne duplica il peso.'],
+    I3:['I3 – Incidenza della spesa energetica','Rapporto tra spesa energetica totale e reddito. Criterio LIHC: l’onere è elevato quando supera la soglia configurata.'],
+    I4:['I4 – Mancato pagamento o interruzione della fornitura','Mancati pagamenti, debiti o interruzioni della fornitura elettrica negli ultimi 12 mesi.'],
+    I5:['I5 – Consumo elettrico del nucleo','Consumo elettrico totale del nucleo in kWh/mese.'],
+    I6:['I6 – Consumo energetico non elettrico','Consumo di fonti non elettriche (gas, GPL, biomassa) in kWh equivalenti al mese.'],
+    I7:['I7 – Profilo di consumo per fascia oraria','Distribuzione del consumo elettrico nella giornata. Un profilo rigido indica sistemi poco flessibili o limiti d’uso. Scala 0=flessibile … 3=molto rigido.'],
+    I8:['I8 – Povertà energetica nascosta (sottoconsumo forzato)','Consumo anormalmente basso rispetto a nuclei comparabili, non spiegato dall’efficienza. Deriva dall’incrocio di I5/I6 con le soglie di sottoconsumo, verificato con abitabilità (I9/I10) e reddito (I1/I3).'],
+    I9:['I9 – Condizioni di abitabilità dell’alloggio','Stato termico, strutturale e sanitario dell’alloggio: isolamento, umidità, rischi per la salute. Scala 0=adeguata … 3=critica.'],
+    I10:['I10 – Sistemi ed elementi di consumo','Sistemi energetici del nucleo (riscaldamento, ACS, raffrescamento) e loro adeguatezza. Scala 0=efficiente … 3=obsoleto.'],
+    I11:['I11 – Accesso ad aiuti sociali / energetici','Il nucleo riceve aiuti pubblici energetici (bonus, tariffa sociale) o sociali formali (RdC). Distingue la vulnerabilità riconosciuta istituzionalmente.'],
+    I12:['I12 – Accesso al microcredito o sostegno comunitario','Accesso a microcredito etico o sostegno finanziario comunitario. L’assenza di accesso aggrava la vulnerabilità.'],
+    I15:['I15 – Persone dipendenti nel nucleo','Numero di persone sotto i 14 o sopra i 70 anni (maggiori bisogni termici e di cura). Scala per numero di persone.'],
+    I16:['I16 – Dipendenza funzionale / mobilità ridotta','Presenza di persone con dipendenza funzionale o mobilità ridotta riconosciuta. Aumenta la sensibilità a interruzioni e disagio termico.'],
+    I17:['I17 – Patologie croniche e dipendenza elettrica','Patologie croniche che aumentano i bisogni energetici o la dipendenza da apparecchi medici. Scala: 0=nessuna, 1=termica, 2=elettrica intermittente, 3=elettrica vitale (O₂, ventilazione).'],
+    I18:['I18 – Indice territoriale socio-ambientale','Indice di rischio dell’area di residenza (deprivazione materiale, esposizione ambientale). Scala 0–100, valore più alto = zona più svantaggiata.'],
+    I19:['I19 – Accesso effettivo a infrastrutture e servizi','Tempo medio per raggiungere servizi essenziali (energia, salute, sostegno sociale). Più tempo = accesso peggiore.'],
+    I20:['I20 – Incapacità percepita di mantenere la temperatura','Il nucleo dichiara di non riuscire a mantenere una temperatura adeguata in inverno o in estate.'],
+    I21:['I21 – Risparmi liquidi o attività realizzabili','Capacità di assorbire shock economici, misurata in mesi di reddito coperti dai risparmi liquidi.'],
+    I22:['I22 – Rete di sostegno sociale del nucleo','Disponibilità di sostegno informale (famiglia, vicini, comunità). Scala 0=rete solida … 3=isolamento totale.'],
+    I23:['I23 – Partecipazione ad attività comunitarie','Grado di partecipazione alle attività della comunità energetica o a iniziative collettive. Scala 0=regolare … 3=nulla.'],
+    I24:['I24 – Accettazione sociale e stigmatizzazione percepita','Stigmatizzazione o rifiuto sociale percepito che limita partecipazione e accesso alle risorse comunitarie. Scala 0=nessuna … 3=grave.'],
+    I25:['I25 – Stabilità amministrativa e abitativa','Anni di residenza continuativa nell’alloggio attuale. Una bassa stabilità può indicare irregolarità o spostamenti frequenti.'],
+  },
+  en:{
+    I1:['I1 – Equivalent monthly net income','Monthly net income adjusted for household composition (ISEE). Measures the economic capacity to meet energy costs.'],
+    I2:['I2 – Household below the relative poverty threshold','Shows whether equivalent income is below the relative poverty threshold (60% of the median). It is derived directly from I1 and does not duplicate its weight.'],
+    I3:['I3 – Household energy burden','Ratio between total energy spending and income. LIHC criterion: the burden is high when it exceeds the configured threshold.'],
+    I4:['I4 – Non-payment or supply interruption','Non-payments, debts or electricity supply interruptions in the last 12 months.'],
+    I5:['I5 – Household electricity consumption','Total household electricity consumption in kWh/month.'],
+    I6:['I6 – Non-electric energy consumption','Consumption of non-electric sources (gas, LPG, biomass) in equivalent kWh per month.'],
+    I7:['I7 – Time-of-use consumption profile','How electricity use is spread over the day. A rigid profile points to inflexible systems or usage constraints. Scale 0=flexible … 3=very rigid.'],
+    I8:['I8 – Hidden energy poverty (forced underconsumption)','Abnormally low consumption compared with similar households that efficiency does not explain. Derived by crossing I5/I6 with underconsumption thresholds, checked against habitability (I9/I10) and income (I1/I3).'],
+    I9:['I9 – Housing habitability conditions','Thermal, structural and sanitary state of the dwelling: insulation, damp, health risks. Scale 0=adequate … 3=critical.'],
+    I10:['I10 – Energy systems and appliances','Household energy systems (heating, hot water, cooling) and how adequate they are. Scale 0=efficient … 3=obsolete.'],
+    I11:['I11 – Access to social / energy assistance','The household receives public energy support (bonus, social tariff) or formal social support (RdC). Identifies institutionally recognised vulnerability.'],
+    I12:['I12 – Access to microcredit or community support','Access to ethical microcredit or community financial support. Lack of access increases the severity of vulnerability.'],
+    I15:['I15 – Dependent people in the household','Number of people under 14 or over 70 (higher thermal and care needs). Scaled by number of people.'],
+    I16:['I16 – Functional dependency / reduced mobility','Presence of people with recognised functional dependency or reduced mobility. Increases sensitivity to outages and thermal discomfort.'],
+    I17:['I17 – Chronic illness and electricity dependence','Chronic conditions that raise energy needs or dependence on medical equipment. Scale: 0=none, 1=thermal, 2=intermittent electric, 3=life-support electric (O₂, ventilation).'],
+    I18:['I18 – Socio-environmental territorial index','Risk index for the area of residence (material deprivation, environmental exposure). Scale 0–100, higher = more disadvantaged area.'],
+    I19:['I19 – Effective access to infrastructure and services','Average travel time to essential services (energy, health, social support). Longer time = worse access.'],
+    I20:['I20 – Perceived inability to keep a suitable temperature','The household reports being unable to keep an adequate temperature in winter or summer.'],
+    I21:['I21 – Liquid savings or realisable assets','Ability to absorb economic shocks, measured in months of income covered by liquid savings.'],
+    I22:['I22 – Household social support network','Availability of informal support (family, neighbours, community). Scale 0=strong network … 3=total isolation.'],
+    I23:['I23 – Participation in community activities','Degree of participation in energy-community activities or collective initiatives. Scale 0=regular … 3=none.'],
+    I24:['I24 – Social acceptance and perceived stigma','Perceived stigma or social rejection that limits participation and access to community resources. Scale 0=none … 3=severe.'],
+    I25:['I25 – Administrative and residential stability','Years of continuous residence at the current address. Low stability may signal an irregular situation or frequent moves.'],
+  },
+};
+
+const I18N_WORKFLOW_CONTENT = {
+  it:{
+    'profile-builder':{description:'Combinare indicatori già definiti in profili, separare attivazione e prioritizzazione e pubblicare la logica che poi gli esperti pondereranno.',outputs:['Profili versionati','Regole di attivazione verificabili','Variabili ponderabili dagli esperti'],actors:['Progettazione metodologica','Revisione etica','Responsabili dei dati'],safeguards:['Attivazione separata dai pesi','Dati mancanti ≠ zero','Tracciabilità documentale']},
+    'expert-evaluation':{description:'Ogni esperto etichetta nuclei sintetici e propone pesi per ciascun profilo in modo indipendente.',outputs:['Etichette ordinali','Pesi individuali','Metriche e scenari'],actors:['Esperti'],safeguards:['Pesi zero validi','Proposta individuale','Dati sintetici nella demo']},
+    'expert-consensus':{description:'Confrontare le proposte individuali, individuare i disaccordi e preparare una versione per la deliberazione e l’approvazione.',outputs:['Mediana dei pesi','Dispersione','Candidata condivisa'],actors:['Esperti','Facilitazione'],safeguards:['Non confondere media e consenso','Disaccordi visibili','Decisione umana']},
+    'community-input':{description:'Raccogliere preferenze tramite un’interfaccia semplice che parte dalla proposta esperta approvata.',outputs:['Priorità comprensibili','Commenti','Scenari preferiti'],actors:['Partecipanti della comunità','Mediazione locale'],safeguards:['Basso carico cognitivo','Nessuna esposizione di casi personali','Linguaggio non tecnico']},
+    'community-consensus':{description:'Deliberare su criteri generali e convalidare una proposta in assemblea senza votare su nuclei specifici.',outputs:['Proposta convalidata','Quorum e votazione','Motivazione registrata'],actors:['Assemblea','Facilitazione','Governance della CER'],safeguards:['Tutela della vulnerabilità grave','Privacy','Responsabilità esplicita']},
+    'benefits-expert':{description:'Tradurre profili e segnali critici in scenari di distribuzione monetaria, energetica o comunitaria.',outputs:['Scenari confrontabili','Limiti e minimi','Spiegazioni d’impatto'],actors:['Esperti','Governance'],safeguards:['Sufficienza','Proporzionalità','Simulazione prima dell’approvazione']},
+    'benefits-community':{description:'Rivedere la distribuzione proposta, approvarla e pubblicare una versione tracciabile e verificabile.',outputs:['Versione approvata','Rapporto di decisione','Cronologia delle revisioni'],actors:['Assemblea','Fondazione Messina','Responsabili della governance'],safeguards:['Spiegabilità','Revisione e ricorso','Audit']},
+  },
+  en:{
+    'profile-builder':{description:'Combine already defined indicators into profiles, keep activation separate from prioritisation and publish the logic experts will then weight.',outputs:['Versioned profiles','Verifiable activation rules','Variables for experts to weight'],actors:['Methodology design','Ethics review','Data owners'],safeguards:['Activation separate from weights','Missing data ≠ zero','Documentary traceability']},
+    'expert-evaluation':{description:'Each expert labels synthetic households and proposes weights for each profile independently.',outputs:['Ordinal labels','Individual weights','Metrics and scenarios'],actors:['Experts'],safeguards:['Zero weights allowed','Individual proposal','Synthetic data in the demo']},
+    'expert-consensus':{description:'Compare individual proposals, locate disagreements and prepare a version for deliberation and approval.',outputs:['Median weights','Spread','Agreed candidate'],actors:['Experts','Facilitation'],safeguards:['Do not mistake an average for consensus','Visible disagreements','Human decision']},
+    'community-input':{description:'Gather preferences through a simple interface that starts from the approved expert proposal.',outputs:['Understandable priorities','Comments','Preferred scenarios'],actors:['Community participants','Local mediation'],safeguards:['Low cognitive load','No exposure of personal cases','Non-technical language']},
+    'community-consensus':{description:'Deliberate on general criteria and validate a proposal in an assembly without voting on specific households.',outputs:['Validated proposal','Quorum and vote','Recorded rationale'],actors:['Assembly','Facilitation','REC governance'],safeguards:['Protection of severe vulnerability','Privacy','Explicit accountability']},
+    'benefits-expert':{description:'Translate profiles and critical signals into monetary, energy or community allocation scenarios.',outputs:['Comparable scenarios','Caps and minimums','Impact explanations'],actors:['Experts','Governance'],safeguards:['Sufficiency','Proportionality','Simulation before approval']},
+    'benefits-community':{description:'Review the proposed allocation, approve it and publish a traceable, reviewable version.',outputs:['Approved version','Decision report','Revision history'],actors:['Assembly','Fondazione Messina','Governance leads'],safeguards:['Explainability','Review and appeal','Audit']},
+  },
+};
+
 let currentLanguage = typeof localStorage !== 'undefined' ? (localStorage.getItem('sociarem_language') || 'es') : 'es';
 if (!I18N_MESSAGES[currentLanguage]) currentLanguage = 'es';
 
@@ -92,12 +238,18 @@ function setLanguage(language) {
     document.documentElement.lang = language;
     document.querySelectorAll('[data-i18n]').forEach(element => { element.textContent = tr(element.dataset.i18n, element.textContent); });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(element => { element.placeholder = tr(element.dataset.i18nPlaceholder, element.placeholder); });
+    document.querySelectorAll('[data-i18n-aria]').forEach(element => { element.setAttribute('aria-label', tr(element.dataset.i18nAria, element.getAttribute('aria-label'))); });
+    document.title = tr('app.title', document.title);
     document.querySelectorAll('.language-select').forEach(element => { element.value = language; });
   }
 }
 
 function translatedProfileField(profileId, field, fallback) { return tr(`profiles.${profileId}.${field}`, fallback); }
-function translatedWorkflowField(stage, field) { return tr(`workflow.${stage.id}.${field}`, stage[field]); }
+function translatedWorkflowField(stage, field) {
+  const key = `workflow.${stage.id}.${field}`;
+  if (I18N_MESSAGES[currentLanguage]?.[key] !== undefined) return I18N_MESSAGES[currentLanguage][key];
+  return I18N_WORKFLOW_CONTENT[currentLanguage]?.[stage.id]?.[field] ?? stage[field];
+}
 function translatedIndicatorName(indicatorId, fallback = indicatorId) { return I18N_INDICATORS[currentLanguage]?.[indicatorId]?.[0] || I18N_INDICATORS.es[indicatorId]?.[0] || fallback; }
 function translatedIndicatorCriterion(indicatorId, thresholds = {}, fallback = '') {
   const template = I18N_INDICATORS[currentLanguage]?.[indicatorId]?.[1] || I18N_INDICATORS.es[indicatorId]?.[1] || fallback;
@@ -125,6 +277,41 @@ function translatedMethodStatus(status) {
   };
   return labels[currentLanguage]?.[status] || status;
 }
+function trf(key, vars = {}, fallback = '') {
+  return String(tr(key, fallback)).replace(/\{([^}]+)\}/g, (match, name) => (name in vars ? vars[name] : match));
+}
+function levelLabel(value) { return I18N_LEVELS[currentLanguage]?.[value]?.[0] ?? I18N_LEVELS.es[value]?.[0] ?? String(value); }
+function levelShort(value) { return I18N_LEVELS[currentLanguage]?.[value]?.[1] ?? I18N_LEVELS.es[value]?.[1] ?? String(value); }
+function translatedIndicatorDetails(indicatorId, fallbackLong, fallbackDefinition) {
+  const entry = I18N_INDICATOR_DETAILS[currentLanguage]?.[indicatorId];
+  return {long:entry?.[0] || fallbackLong, definition:entry?.[1] || fallbackDefinition};
+}
+function translatedWorkflowContent(stage, field) {
+  return I18N_WORKFLOW_CONTENT[currentLanguage]?.[stage.id]?.[field] ?? stage[field];
+}
+function translatedIndicatorDisplay(indicatorId, hh, thresholds, fallback) {
+  const v = I18N_VALUE_LABELS[currentLanguage] || I18N_VALUE_LABELS.es;
+  const value = hh[indicatorId];
+  const yesNo = x => (x ? v.yes : v.no);
+  switch (indicatorId) {
+    case 'I1': return `${value} ${v.perMonth}`;
+    case 'I2': return `${Math.round(hh.I1 / thresholds.pobreza * 100)}% ${v.ofThreshold}`;
+    case 'I3': return `${Number(value).toFixed(1)}%`;
+    case 'I4': case 'I11': case 'I12': case 'I16': case 'I20': return yesNo(value);
+    case 'I5': case 'I6': return `${value} kWh`;
+    case 'I7': case 'I9': case 'I10': case 'I17': case 'I22': case 'I23': case 'I24': return v[indicatorId]?.[value] ?? fallback;
+    case 'I8':
+      if (typeof i8Risk === 'function' && i8Risk(hh, thresholds)) return `${v.under} (−${Math.round((1 - hh.I5 / thresholds.infra_elec) * 100)}%)`;
+      return v.normal;
+    case 'I15': return `${value} ${v.persons}`;
+    case 'I18': return `${value}/100`;
+    case 'I19': return `${value} min`;
+    case 'I21': return value > 0 ? `${value} ${value === 1 ? v.month : v.months}` : v.none;
+    case 'I25': return value > 0 ? `${value} ${value === 1 ? v.year : v.years}` : v.lessYear;
+    default: return fallback;
+  }
+}
+
 function translatedHouseholdName(name) {
   const match = /^Hogar\s+(\d+)$/i.exec(String(name));
   if (!match) return name;

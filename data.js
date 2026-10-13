@@ -55,6 +55,13 @@ const MODEL_INFO = {
 };
 
 const DEMO_ROLES = {
+  demo: {
+    label: 'Demo (todos los permisos)',
+    description: 'Perfil de demostración: construye perfiles, etiqueta, ajusta pesos y facilita el consenso sin cambiar de rol.',
+    canEditIndicators: true,
+    canEvaluate: true,
+    canFacilitate: true,
+  },
   methodology: {
     label: 'Diseño metodológico',
     description: 'Construye y revisa perfiles, reglas activadoras y variables antes de publicarlos.',
@@ -649,6 +656,79 @@ const DEMO_HOUSEHOLDS = [
    I11:0,I12:0,I15:0,I16:0,I17:0,I18:22,I19:7,I20:0,
    I21:6,I22:0,I23:0,I24:0,I25:12,
    gt:{P1:0,P2:0,P3:0,P4:0,P5:0,P6:0}},
+
+  // Hogares 11–20: ampliación para cubrir perfiles con pocos casos activados
+  // (P3, P4, P5 y P6) y aportar intensidades intermedias. En los perfiles que
+  // no se activan la etiqueta de referencia es 0.
+  {id:'HOG-11',nombre:'Hogar 11',edad:29,composicion:'Pareja joven, pueblo de montaña',
+   desc:'Ingresos estables. Vivienda aceptable. Municipio aislado, a 45 minutos del centro de salud y de las oficinas de ayudas. Red social moderada.',
+   I1:1250,I3:7.5,I4:0,I5:230,I6:140,I7:1,I9:1,I10:1,
+   I11:0,I12:0,I15:0,I16:0,I17:0,I18:72,I19:45,I20:0,
+   I21:2,I22:1,I23:1,I24:0,I25:6,
+   gt:{P1:0,P2:0,P3:0,P4:0,P5:2,P6:0}},
+
+  {id:'HOG-12',nombre:'Hogar 12',edad:81,composicion:'Viuda sola, pensión baja',
+   desc:'Apenas enciende la calefacción para ahorrar. Piso antiguo mal aislado y caldera vieja. Hijos lejos, poca relación con el vecindario.',
+   I1:720,I3:11.5,I4:0,I5:95,I6:60,I7:1,I9:2,I10:2,
+   I11:0,I12:0,I15:1,I16:0,I17:1,I18:45,I19:20,I20:1,
+   I21:1,I22:2,I23:2,I24:1,I25:40,
+   gt:{P1:3,P2:3,P3:4,P4:2,P5:0,P6:2}},
+
+  {id:'HOG-13',nombre:'Hogar 13',edad:42,composicion:'Pareja, hija con diálisis domiciliaria',
+   desc:'Renta media. Diálisis peritoneal nocturna en casa: dependencia eléctrica vital. Vivienda correcta en barrio bien comunicado.',
+   I1:1350,I3:9.2,I4:0,I5:520,I6:180,I7:3,I9:0,I10:1,
+   I11:1,I12:0,I15:1,I16:1,I17:3,I18:40,I19:15,I20:0,
+   I21:3,I22:0,I23:1,I24:0,I25:9,
+   gt:{P1:0,P2:0,P3:0,P4:4,P5:0,P6:0}},
+
+  {id:'HOG-14',nombre:'Hogar 14',edad:27,composicion:'Joven solo, empleo temporal',
+   desc:'Contratos cortos y alquiler alto. Un aviso de impago este año. Recién mudado al barrio, todavía sin vínculos comunitarios.',
+   I1:760,I3:14.0,I4:1,I5:260,I6:120,I7:1,I9:1,I10:1,
+   I11:0,I12:0,I15:0,I16:0,I17:0,I18:50,I19:18,I20:0,
+   I21:0,I22:1,I23:2,I24:0,I25:1,
+   gt:{P1:3,P2:0,P3:0,P4:0,P5:0,P6:1}},
+
+  {id:'HOG-15',nombre:'Hogar 15',edad:38,composicion:'Familia migrante, 3 hijos menores',
+   desc:'Un único sueldo precario. Impago reciente. Vivienda húmeda en periferia degradada. Barrera idiomática y estigmatización percibida.',
+   I1:640,I3:16.0,I4:1,I5:300,I6:150,I7:2,I9:2,I10:1,
+   I11:1,I12:0,I15:3,I16:0,I17:0,I18:70,I19:35,I20:1,
+   I21:0,I22:2,I23:2,I24:2,I25:3,
+   gt:{P1:4,P2:3,P3:0,P4:2,P5:3,P6:3}},
+
+  {id:'HOG-16',nombre:'Hogar 16',edad:76,composicion:'Pareja jubilada en zona rural',
+   desc:'Pensiones suficientes y ahorros. Calefacción de gasóleo obsoleta. Él con movilidad reducida. Pueblo sin transporte público, pocos contactos.',
+   I1:1180,I3:8.0,I4:0,I5:200,I6:130,I7:1,I9:1,I10:2,
+   I11:0,I12:0,I15:2,I16:1,I17:1,I18:66,I19:50,I20:1,
+   I21:4,I22:2,I23:2,I24:0,I25:35,
+   gt:{P1:0,P2:2,P3:0,P4:3,P5:3,P6:2}},
+
+  {id:'HOG-17',nombre:'Hogar 17',edad:22,composicion:'Estudiante en piso compartido',
+   desc:'Beca y trabajo parcial. Consumo bajo porque pasa el día fuera, en un piso reformado y eficiente. Buena red de amistades.',
+   I1:600,I3:6.0,I4:0,I5:120,I6:70,I7:0,I9:0,I10:0,
+   I11:0,I12:1,I15:0,I16:0,I17:0,I18:35,I19:12,I20:0,
+   I21:1,I22:1,I23:1,I24:0,I25:1,
+   gt:{P1:1,P2:0,P3:0,P4:0,P5:0,P6:0}},
+
+  {id:'HOG-18',nombre:'Hogar 18',edad:36,composicion:'Madre sola, 1 hijo, barrio degradado',
+   desc:'Renta muy baja y deuda con la comercializadora. Restringe consumo a pesar del frío. Vivienda en mal estado. Barrio periférico, sin participación comunitaria.',
+   I1:540,I3:12.5,I4:1,I5:130,I6:90,I7:2,I9:3,I10:2,
+   I11:1,I12:0,I15:1,I16:0,I17:0,I18:78,I19:40,I20:1,
+   I21:0,I22:2,I23:3,I24:1,I25:4,
+   gt:{P1:4,P2:4,P3:4,P4:2,P5:4,P6:3}},
+
+  {id:'HOG-19',nombre:'Hogar 19',edad:47,composicion:'Familia de clase media, 1 hijo',
+   desc:'Ingresos holgados pero casa antigua con caldera muy obsoleta y humedades. Barrio céntrico, buena red social.',
+   I1:1400,I3:9.0,I4:0,I5:330,I6:260,I7:1,I9:2,I10:3,
+   I11:0,I12:0,I15:1,I16:0,I17:0,I18:25,I19:8,I20:1,
+   I21:5,I22:0,I23:0,I24:0,I25:18,
+   gt:{P1:0,P2:3,P3:0,P4:1,P5:0,P6:0}},
+
+  {id:'HOG-20',nombre:'Hogar 20',edad:70,composicion:'Hombre solo con ventilación mecánica',
+   desc:'Pensión modesta. Ventilador domiciliario 24 h. Vivienda aceptable. Sin familia cercana, aislamiento social casi total.',
+   I1:820,I3:13.0,I4:0,I5:410,I6:90,I7:3,I9:1,I10:1,
+   I11:1,I12:0,I15:1,I16:1,I17:3,I18:55,I19:25,I20:0,
+   I21:1,I22:3,I23:3,I24:1,I25:20,
+   gt:{P1:2,P2:0,P3:0,P4:4,P5:0,P6:3}},
 ];
 
 // Dataset de trabajo mutable — se reemplaza al cargar XLSX
@@ -798,6 +878,8 @@ function runParityTests() {
   for (const hh of HOUSEHOLDS) {
     for (const p of Object.keys(PROFILES)) {
       const key = `${hh.id}_${p}`;
+      // Solo los 10 hogares originales tienen referencia Python.
+      if (!(key in PARITY_REFERENCE)) continue;
       const js = scoreLegacyHousehold(hh, PROFILES[p].init_weights, p, T);
       const py = PARITY_REFERENCE[key];
       const ok = Math.abs(js - py) < 0.001;

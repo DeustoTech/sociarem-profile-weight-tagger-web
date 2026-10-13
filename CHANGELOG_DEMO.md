@@ -40,6 +40,11 @@ Base conservada: `main` en el commit previo a esta entrega.
 33. **Árbol lógico restaurado y preview completa.** La fórmula textual se mantiene, pero vuelve el esquema jerárquico completo con ROOT, operadores conectados e indicadores; los diez hogares se muestran a la vez en una cuadrícula 5×2 sin scroll interno.
 34. **Preview a dos columnas y perfiles eliminables.** Los diez hogares vuelven a organizarse en dos columnas, sin scroll interno. Diseño metodológico puede eliminar cualquier perfil salvo el último mediante confirmación; la eliminación persiste y limpia sus evaluaciones, propuestas de consenso y versiones locales.
 35. **Identidad visual legible.** La cabecera lateral recorta correctamente el bloque SOCIAREM de la imagen panorámica original y lo muestra a tamaño visible. La franja de financiación aumenta su altura y adapta por separado los logos de la Unión Europea y SERI para que sus textos se puedan leer.
+36. **Traducción completa ES/IT/EN.** Además del constructor, se traducen la evaluación experta (valores y tooltips de indicadores, niveles, avisos), el ajuste de pesos, las versiones, el consenso, las fases de roadmap, el panel de datos, la búsqueda y todas las notificaciones. Un test nuevo renderiza esas vistas en italiano e inglés y falla si aparece texto en castellano.
+37. **Pasos 4 y 5 sin porcentajes.** Las variables ponderables ya no muestran el peso inicial y la vista previa indica solo si cada hogar activa el perfil, con el recuento `n/20`.
+38. **Rol Demo.** Nuevo rol por defecto con todos los permisos (diseño, evaluación y facilitación) para recorrer la demo sin cambiar de usuario; entra directamente en la fase de perfiles.
+39. **Etiquetado solo de perfiles activados.** Si la regla activadora devuelve FALSE, el hogar se muestra como «No activo», no ofrece botones de nivel, no cuenta en el progreso ni en la optimización y queda fuera de Auto-demo y Asignar todo.
+40. **20 hogares sintéticos.** Diez hogares nuevos (HOG-11 a HOG-20) con etiquetas de referencia, diseñados para activar los perfiles con poca cobertura: P1 pasa de 6 a 12 hogares activados, P2 de 7 a 12, P3 de 5 a 7, P4 de 5 a 12, P5 de 4 a 8 y P6 de 5 a 11. La paridad Python ↔ JS se mantiene sobre los 10 hogares originales.
 
 ## Cómo volver atrás
 

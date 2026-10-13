@@ -4,7 +4,7 @@
 
 const state = {
   username: '',
-  role: 'expert',
+  role: 'demo',
   workflowStage: 'expert-evaluation',
   selectedIndicatorId: 'I1',
   selectedProfileDefinitionId: 'P1',
@@ -13,7 +13,7 @@ const state = {
   activeHouseholdIndex: 0,
   showReferenceLabels: false,
   hasGT: true,
-  datasetLabel: 'Demo · 10 hogares',
+  datasetFile: null,
   searchText: '',
   filteredIndices: HOUSEHOLDS.map((_, i) => i),
   profiles: Object.fromEntries(
@@ -40,6 +40,43 @@ function canEditIndicators() { return !!roleDef().canEditIndicators; }
 function canEditProfiles() { return !!roleDef().canEditIndicators; }
 function canEvaluate() { return !!roleDef().canEvaluate; }
 function canFacilitate() { return !!roleDef().canFacilitate; }
+
+function datasetLabelText() {
+  return state.datasetFile
+    ? trf('data.fileLabel', {file:state.datasetFile, n:HOUSEHOLDS.length})
+    : trf('data.demoLabel', {n:HOUSEHOLDS.length});
+}
+
+// ─── Activación del perfil por hogar ─────────────────────────────────────────
+// Un hogar solo se etiqueta en los perfiles cuya regla activadora devuelve TRUE.
+
+function isProfileActiveFor(hh, profileId = state.activeProfile) {
+  const def = PROFILES[profileId];
+  if (!hh || !def?.activation_expression || typeof evaluateExpression !== 'function') return true;
+  try {
+    return Boolean(evaluateExpression(def.activation_expression, profileEvaluationContext(hh, {}, profileId, T())).value);
+  } catch (error) {
+    return true;
+  }
+}
+
+function activeHouseholdsFor(profileId = state.activeProfile) {
+  return HOUSEHOLDS.filter(hh => isProfileActiveFor(hh, profileId));
+}
+
+// Etiquetas válidas: solo las de hogares que activan el perfil.
+function activeExpertLabels(profileId = state.activeProfile) {
+  const labels = state.profiles[profileId]?.expertLabels || {};
+  const out = {};
+  for (const hh of HOUSEHOLDS) if (labels[hh.id] !== undefined && isProfileActiveFor(hh, profileId)) out[hh.id] = labels[hh.id];
+  return out;
+}
+
+function profileActivationText(profileId) {
+  const def = PROFILES[profileId];
+  if (!def?.activation_expression || typeof profileActivationFormula !== 'function') return '';
+  return profileActivationFormula(def.activation_expression);
+}
 
 function ensureProfileState(profileId) {
   if (!state.profiles[profileId]) state.profiles[profileId] = {phase:1,expertLabels:{},optimizedWeights:null,liveWeights:null};
@@ -110,22 +147,22 @@ function enterApp() {
   const passInp  = document.getElementById('login-password');
   const username = inp ? inp.value.trim() : '';
   const password = passInp ? passInp.value : '';
-  const selectedRole = document.getElementById('login-role')?.value || 'expert';
+  const selectedRole = document.getElementById('login-role')?.value || 'demo';
 
   if (!username) {
-    showLoginError('Introduce un nombre de evaluador.');
+    showLoginError(tr('login.errUser'));
     if (inp) inp.focus();
     return;
   }
   if (password !== APP_PASSWORD) {
-    showLoginError('Contraseña incorrecta.');
+    showLoginError(tr('login.errPassword'));
     if (passInp) { passInp.focus(); passInp.select(); }
     return;
   }
   hideLoginError();
   state.username = username;
   state.role = DEMO_ROLES[selectedRole] ? selectedRole : 'observer';
-  state.workflowStage = state.role === 'methodology'
+  state.workflowStage = ['methodology','demo'].includes(state.role)
     ? 'profile-builder'
     : state.role === 'facilitator' ? 'expert-consensus' : 'expert-evaluation';
   localStorage.setItem('sociarem_username', username);
@@ -162,6 +199,7 @@ function buildMainScreen() {
 
 function renderAll() {
   applySearch();
+  renderDataPanel();
   renderTopbar();
   renderWorkflowBar();
   renderSidebar();
@@ -244,7 +282,7 @@ function toggleRefLabels() {
 function applySearch() {
   const q = state.searchText.trim().toLowerCase();
   state.filteredIndices = HOUSEHOLDS.reduce((arr, hh, i) => {
-    if (!q || hh.nombre.toLowerCase().includes(q) || hh.id.toLowerCase().includes(q)) arr.push(i);
+    if (!q || hh.nombre.toLowerCase().includes(q) || translatedHouseholdName(hh.nombre).toLowerCase().includes(q) || hh.id.toLowerCase().includes(q)) arr.push(i);
     return arr;
   }, []);
 }
@@ -269,26 +307,26 @@ function renderSidebar() {
 
   list.innerHTML = state.filteredIndices.map(i => {
     const hh  = HOUSEHOLDS[i];
-    const lbl = labeled[hh.id];
+    const activeProfile = isProfileActiveFor(hh);
+    const lbl = activeProfile ? labeled[hh.id] : undefined;
     const lvl = lbl !== undefined ? VULNERABILITY_LEVELS[lbl] : null;
     const dotColor = lvl ? lvl.color : '#D1D5DB';
-    const levelTag = lvl
-      ? `<span class="sidebar-level-tag" style="background:${lvl.color}20;color:${lvl.color}">${lvl.short}</span>`
-      : '';
+    const levelTag = !activeProfile
+      ? `<span class="sidebar-level-tag sidebar-inactive-tag">${escHtml(tr('builder.inactive'))}</span>`
+      : lvl
+        ? `<span class="sidebar-level-tag" style="background:${lvl.color}20;color:${lvl.color}">${escHtml(levelShort(lvl.value))}</span>`
+        : '';
 
     let refTag = '';
-    if (state.showReferenceLabels && hh.gt) {
+    if (activeProfile && state.showReferenceLabels && hh.gt) {
       const g = hh.gt[state.activeProfile];
-      if (g !== undefined) {
-        const gv = VULNERABILITY_LEVELS[g];
-        refTag = `<span class="sidebar-ref-tag">(${gv.short})</span>`;
-      }
+      if (g !== undefined) refTag = `<span class="sidebar-ref-tag">(${escHtml(levelShort(g))})</span>`;
     }
 
-    return `<button class="sidebar-item ${i === state.activeHouseholdIndex ? 'active' : ''}"
+    return `<button class="sidebar-item ${i === state.activeHouseholdIndex ? 'active' : ''} ${activeProfile ? '' : 'profile-inactive'}"
                 onclick="selectHousehold(${i})">
-        <span class="sidebar-dot" style="color:${dotColor}">⬤</span>
-        <span class="sidebar-item-name">${hh.nombre}</span>
+        <span class="sidebar-dot" style="color:${dotColor}">${activeProfile ? '⬤' : '○'}</span>
+        <span class="sidebar-item-name">${escHtml(translatedHouseholdName(hh.nombre))}</span>
         ${levelTag}${refTag}
       </button>`;
   }).join('');
@@ -299,28 +337,30 @@ function renderSidebar() {
 function renderSidebarBottom() {
   const el = document.getElementById('sidebar-bottom');
   if (!el) return;
-  const nLabeled = Object.keys(ps().expertLabels).length;
-  const nTotal   = HOUSEHOLDS.length;
-  const pct      = Math.round(nLabeled / nTotal * 100);
+  const nLabeled = Object.keys(activeExpertLabels()).length;
+  const nTotal   = activeHouseholdsFor().length;
+  const nInactive = HOUSEHOLDS.length - nTotal;
+  const pct      = nTotal ? Math.round(nLabeled / nTotal * 100) : 100;
   const canOpt   = canEvaluate() && nLabeled >= 3 && ps().phase === 1;
   const inPhase2 = ps().phase === 2;
 
   el.innerHTML = `
     <div class="sidebar-progress ${nLabeled === nTotal ? 'ok' : ''}">
-      ${nLabeled}/${nTotal} etiquetados (${pct}%)
+      ${trf('sidebar.progress', {n:nLabeled, total:nTotal, pct})}
     </div>
+    ${nInactive ? `<div class="sidebar-inactive-note">${trf('sidebar.inactiveCount', {n:nInactive})}</div>` : ''}
     ${inPhase2 ? `
-      <button class="btn btn-secondary btn-sm btn-full mb-1" onclick="backToPhase1()">← Volver a fase 1</button>
+      <button class="btn btn-secondary btn-sm btn-full mb-1" onclick="backToPhase1()">${tr('sidebar.backPhase1')}</button>
     ` : `
       ${state.hasGT && profileHasReferenceLabels(state.activeProfile) ? `
         <button class="btn btn-secondary btn-sm btn-full mb-1" ${canEvaluate() ? '' : 'disabled'} onclick="autoAssign(true)">▷ Auto-demo</button>
         <button class="btn btn-secondary btn-sm btn-full mb-1"
-                title="Copia las etiquetas de referencia a los 6 perfiles, para los 10 hogares"
-                ${canEvaluate() ? '' : 'disabled'} onclick="autoAssignAllProfiles()">⚡ Asignar todo (6 perfiles)</button>
+                title="${escHtml(tr('sidebar.assignAllTitle'))}"
+                ${canEvaluate() ? '' : 'disabled'} onclick="autoAssignAllProfiles()">${trf('sidebar.assignAll', {n:Object.keys(PROFILES).length})}</button>
       ` : ''}
       ${canOpt
-        ? `<button class="btn btn-accent2 btn-sm btn-full" onclick="runOptimization()">⟳ Optimizar pesos</button>`
-        : `<button class="btn btn-secondary btn-sm btn-full" disabled title="Necesitas ≥3 etiquetas">⟳ Optimizar pesos</button>`}
+        ? `<button class="btn btn-accent2 btn-sm btn-full" onclick="runOptimization()">${tr('sidebar.optimize')}</button>`
+        : `<button class="btn btn-secondary btn-sm btn-full" disabled title="${escHtml(tr('sidebar.needThree'))}">${tr('sidebar.optimize')}</button>`}
     `}
   `;
 }
@@ -360,13 +400,13 @@ function renderWorkflowSidebar() {
         <span class="sidebar-level-tag">${n}</span>
       </button>`;
     }).join('');
-    bottom.innerHTML = `<div class="catalog-summary"><b>${submissions.length}</b> propuestas en ${state.activeProfile}</div>
-      <div class="permission-note">${canFacilitate() ? 'Puedes guardar una versión candidata.' : 'La facilitación guarda la candidatura; los expertos aportan propuestas.'}</div>`;
+    bottom.innerHTML = `<div class="catalog-summary"><span>${trf('cons.sidebarCount', {n:`<b>${submissions.length}</b>`, profile:state.activeProfile})}</span></div>
+      <div class="permission-note">${canFacilitate() ? tr('cons.canSave') : tr('cons.cannotSave')}</div>`;
     return;
   }
 
-  list.innerHTML = (stage?.outputs || []).map(output => `<div class="sidebar-item"><span class="sidebar-dot" style="color:#9CA3AF">○</span><span class="sidebar-item-name">${escHtml(output)}</span></div>`).join('');
-  bottom.innerHTML = `<div class="permission-note">Fase visible para explicar el recorrido completo. Todavía no modifica datos.</div>`;
+  list.innerHTML = (stage ? translatedWorkflowContent(stage, 'outputs') : []).map(output => `<div class="sidebar-item"><span class="sidebar-dot" style="color:#9CA3AF">○</span><span class="sidebar-item-name">${escHtml(output)}</span></div>`).join('');
+  bottom.innerHTML = `<div class="permission-note">${tr('future.sidebarNote')}</div>`;
 }
 
 function backToPhase1() {
@@ -393,22 +433,24 @@ function renderHouseholdHeader() {
   const pos   = state.filteredIndices.indexOf(state.activeHouseholdIndex);
   const total = state.filteredIndices.length;
 
+  const activeProfile = isProfileActiveFor(hh);
   let refLine = '';
-  if (state.showReferenceLabels && hh.gt) {
+  if (activeProfile && state.showReferenceLabels && hh.gt) {
     const g = hh.gt[state.activeProfile];
     if (g !== undefined) {
       const gv = VULNERABILITY_LEVELS[g];
-      refLine = `<span class="hh-ref-badge" style="color:${gv.color};border-color:${gv.color}">${gv.value} · ${gv.label}</span>`;
+      refLine = `<span class="hh-ref-badge" style="color:${gv.color};border-color:${gv.color}">${gv.value} · ${escHtml(levelLabel(gv.value))}</span>`;
     }
   }
+  const activationBadge = `<span class="hh-activation-badge ${activeProfile ? 'on' : 'off'}">${state.activeProfile} · ${escHtml(activeProfile ? tr('eval.activeTag') : tr('builder.inactive'))}</span>`;
 
   el.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <div>
         <div class="hh-id">${hh.id}</div>
-        <div class="hh-name">${hh.nombre}</div>
+        <div class="hh-name">${escHtml(translatedHouseholdName(hh.nombre))}</div>
       </div>
-      ${refLine}
+      ${activationBadge}${refLine}
       <div class="hh-nav" style="margin-left:auto">
         <button class="nav-btn" onclick="navHousehold(-1)" ${pos <= 0 ? 'disabled' : ''}>‹</button>
         <span class="nav-counter">${pos >= 0 ? pos+1 : '?'}/${total}</span>
@@ -455,19 +497,21 @@ function renderPhase1(area) {
   const profDef = pd();
 
   const progressHtml = Object.entries(PROFILES).map(([pid, def]) => {
-    const n = Object.keys(state.profiles[pid].expertLabels).length;
+    const n = Object.keys(activeExpertLabels(pid)).length;
+    const total = activeHouseholdsFor(pid).length;
     return `<div class="profile-progress-cell">
-      <div class="profile-progress-count" style="color:${def.color}">${n}</div>
+      <div class="profile-progress-count" style="color:${def.color}">${n}<small>/${total}</small></div>
       <div class="profile-progress-label">${pid}</div>
     </div>`;
   }).join('');
 
   const cards = profDef.display_keys.map(k => indicatorCard(k, hh)).join('');
+  const activeProfile = isProfileActiveFor(hh);
 
   const lbl       = ps().expertLabels[hh.id];
   const lblStatus = lbl !== undefined
-    ? `<span style="color:${VULNERABILITY_LEVELS[lbl].color};font-weight:700">✓ Nivel ${lbl} · ${VULNERABILITY_LEVELS[lbl].label}</span>`
-    : '<span class="text-muted">Sin etiquetar</span>';
+    ? `<span style="color:${VULNERABILITY_LEVELS[lbl].color};font-weight:700">✓ ${tr('eval.level')} ${lbl} · ${escHtml(levelLabel(lbl))}</span>`
+    : `<span class="text-muted">${tr('eval.unlabeled')}</span>`;
 
   const ordinalBtns = VULNERABILITY_LEVELS.map(lvl => {
     const isActive = lbl === lvl.value;
@@ -475,39 +519,65 @@ function renderPhase1(area) {
                     style="${isActive ? `background:${lvl.color};border-color:${lvl.color};color:#fff` : ''}"
                     ${canEvaluate() ? `onclick="setExpertLabel('${hh.id}',${lvl.value})"` : 'disabled'}>
               <span class="ordinal-num">${lvl.value}</span>
-              <span class="ordinal-lbl">${lvl.short}</span>
+              <span class="ordinal-lbl">${escHtml(levelShort(lvl.value))}</span>
             </button>`;
   }).join('');
 
+  const nextActive = nextActiveHouseholdIndex();
+  const labelCard = activeProfile
+    ? `<div class="validation-card">
+      <div class="validation-question">${escHtml(translatedProfileContent(state.activeProfile,'question',profDef.question))}</div>
+      <div class="validation-hint">${tr('eval.hint')}</div>
+      <div class="ordinal-buttons">${ordinalBtns}</div>
+      <div class="validation-status">${lblStatus}</div>
+    </div>`
+    : `<div class="validation-card validation-inactive">
+      <div class="validation-question">${tr('eval.notActiveTitle')}</div>
+      <div class="validation-hint">${escHtml(trf('eval.notActiveBody', {profile:state.activeProfile, rule:profileActivationText(state.activeProfile)}))}</div>
+      ${nextActive !== null ? `<div class="builder-actions"><button class="btn btn-accent2 btn-sm" onclick="selectHousehold(${nextActive})">${tr('eval.nextActive')}</button></div>` : ''}
+    </div>`;
+
   area.innerHTML = `
     <div class="phase-intro">
-      <div><b>Evaluación experta individual</b> · ${escHtml(MODEL_INFO.profileModel)}</div>
-      <div>${state.activeProfile === 'P5' ? '<b>Atención:</b> P5 conserva I19 por compatibilidad con el modelo provisional; el catálogo V3.0 lo marca como retirado.' : 'Esta pantalla recoge propuestas individuales; el consenso se construye en la fase siguiente.'}</div>
-      ${canEvaluate() ? '' : '<div class="permission-note">Este rol puede consultar, pero no etiquetar.</div>'}
+      <div><b>${escHtml(tr('workflow.expert-evaluation.title'))}</b> · ${escHtml(tr('model.profileModel', MODEL_INFO.profileModel))}</div>
+      <div>${state.activeProfile === 'P5' ? tr('eval.p5Warning') : tr('eval.introNote')}</div>
+      ${canEvaluate() ? '' : `<div class="permission-note">${tr('eval.readOnly')}</div>`}
     </div>
     <div class="progress-card">
-      <div class="section-heading" style="margin-bottom:6px">Progreso de etiquetado</div>
+      <div class="section-heading" style="margin-bottom:6px">${tr('eval.progress')} <span class="text-muted" style="font-weight:400;text-transform:none">· ${tr('eval.progressHint')}</span></div>
       <div class="progress-grid">${progressHtml}</div>
     </div>
 
-    <div class="section-heading mb-2">${state.activeProfile} · ${profDef.short}</div>
+    <div class="section-heading mb-2">${state.activeProfile} · ${escHtml(translatedProfileField(state.activeProfile,'short',profDef.short))}</div>
     <div class="indicator-grid mb-3">${cards}</div>
 
-    <div class="validation-card">
-      <div class="validation-question">${escHtml(translatedProfileContent(state.activeProfile,'question',profDef.question))}</div>
-      <div class="validation-hint">Evalúa los indicadores del perfil. Tu criterio prima sobre los datos.</div>
-      <div class="ordinal-buttons">${ordinalBtns}</div>
-      <div class="validation-status">${lblStatus}</div>
-    </div>
+    ${labelCard}
   `;
+}
+
+// Siguiente hogar (en el orden filtrado, con vuelta al principio) que activa el perfil.
+function nextActiveHouseholdIndex(preferUnlabeled = false) {
+  const fi = state.filteredIndices;
+  const pos = fi.indexOf(state.activeHouseholdIndex);
+  for (let step = 1; step < fi.length; step++) {
+    // Al etiquetar solo se avanza hacia delante; el botón "siguiente" da la vuelta.
+    if (preferUnlabeled && pos + step >= fi.length) break;
+    const idx = fi[(pos + step) % fi.length];
+    const hh = HOUSEHOLDS[idx];
+    if (!isProfileActiveFor(hh)) continue;
+    if (preferUnlabeled && ps().expertLabels[hh.id] !== undefined) continue;
+    return idx;
+  }
+  return null;
 }
 
 function indicatorCard(k, hh) {
   const def        = INDICATOR_DEFS[k];
   const badgeClass = def.role === 'pri' ? 'badge-pri' : 'badge-sec';
   const roleLabel  = def.role === 'pri' ? 'PRI' : 'SEC';
-  const derivedTag = def.derived ? '<span class="derived-tag">derivado</span>' : '';
-  const tipHtml    = `<b>${def.long}</b><br><br>${def.definition}<br><br><i>${def.source}</i>`;
+  const derivedTag = def.derived ? `<span class="derived-tag">${tr('eval.derived')}</span>` : '';
+  const details    = translatedIndicatorDetails(k, def.long, def.definition);
+  const tipHtml    = `<b>${escHtml(details.long)}</b><br><br>${escHtml(details.definition)}<br><br><i>${escHtml(def.source)}</i>`;
 
   return `<div class="indicator-card">
     <div class="card-top">
@@ -519,7 +589,7 @@ function indicatorCard(k, hh) {
               onmouseleave="hideTip()">ⓘ</button>
     </div>
     <div class="indicator-name">${escHtml(translatedIndicatorName(k,def.name))}</div>
-    <div class="indicator-value">${def.display(hh, T())}</div>
+    <div class="indicator-value">${escHtml(translatedIndicatorDisplay(k, hh, T(), def.display(hh, T())))}</div>
     <div class="indicator-note">${escHtml(translatedIndicatorCriterion(k,T(),def.note(T())))}</div>
   </div>`;
 }
@@ -527,14 +597,15 @@ function indicatorCard(k, hh) {
 // ─── Etiquetado ordinal ───────────────────────────────────────────────────────
 
 function setExpertLabel(hhId, level) {
-  if (!canEvaluate()) { showNotification('Este rol no puede modificar evaluaciones.'); return; }
+  if (!canEvaluate()) { showNotification(tr('notify.cannotEvaluate')); return; }
+  const hh = HOUSEHOLDS.find(item => item.id === hhId);
+  if (!isProfileActiveFor(hh)) { showNotification(tr('notify.inactiveNoLabel')); return; }
   const wasUnlabeled = ps().expertLabels[hhId] === undefined;
   ps().expertLabels[hhId] = level;
 
   if (wasUnlabeled) {
-    const fi  = state.filteredIndices;
-    const pos = fi.indexOf(state.activeHouseholdIndex);
-    if (pos >= 0 && pos < fi.length - 1) { selectHousehold(fi[pos + 1]); return; }
+    const next = nextActiveHouseholdIndex(true);
+    if (next !== null) { selectHousehold(next); return; }
   }
   renderSidebar();
   renderContentArea();
@@ -543,13 +614,13 @@ function setExpertLabel(hhId, level) {
 // ─── Auto-asignación ─────────────────────────────────────────────────────────
 
 function autoAssign(animated) {
-  if (!canEvaluate()) { showNotification('Este rol no puede modificar evaluaciones.'); return; }
-  if (!state.hasGT || !profileHasReferenceLabels(state.activeProfile)) { alert('Este perfil no tiene etiquetas de referencia.'); return; }
+  if (!canEvaluate()) { showNotification(tr('notify.cannotEvaluate')); return; }
+  if (!state.hasGT || !profileHasReferenceLabels(state.activeProfile)) { showNotification(tr('notify.noReference')); return; }
   if (state._autoTimer) { clearTimeout(state._autoTimer); state._autoTimer = null; }
   if (animated) {
     _autoStep(0);
   } else {
-    for (const hh of HOUSEHOLDS) ps().expertLabels[hh.id] = hh.gt[state.activeProfile];
+    for (const hh of activeHouseholdsFor()) if (Number.isInteger(hh.gt?.[state.activeProfile])) ps().expertLabels[hh.id] = hh.gt[state.activeProfile];
     renderAll();
   }
 }
@@ -557,21 +628,24 @@ function autoAssign(animated) {
 // Asigna las etiquetas de referencia a TODOS los perfiles (P1–P6), no solo
 // al perfil activo. Pensado para preparar la demo de un solo golpe.
 function autoAssignAllProfiles() {
-  if (!canEvaluate()) { showNotification('Este rol no puede modificar evaluaciones.'); return; }
-  if (!state.hasGT) { alert('El dataset actual no tiene etiquetas de referencia.'); return; }
+  if (!canEvaluate()) { showNotification(tr('notify.cannotEvaluate')); return; }
+  if (!state.hasGT) { showNotification(tr('notify.noReferenceDataset')); return; }
   if (state._autoTimer) { clearTimeout(state._autoTimer); state._autoTimer = null; }
-  for (const pid of Object.keys(state.profiles)) {
+  const profileIds = Object.keys(PROFILES);
+  for (const pid of profileIds) {
+    const profileState = ensureProfileState(pid);
     for (const hh of HOUSEHOLDS) {
-      if (Number.isInteger(hh.gt?.[pid])) state.profiles[pid].expertLabels[hh.id] = hh.gt[pid];
+      if (Number.isInteger(hh.gt?.[pid]) && isProfileActiveFor(hh, pid)) profileState.expertLabels[hh.id] = hh.gt[pid];
     }
   }
   renderAll();
-  showNotification('Etiquetas de referencia asignadas en los 6 perfiles.');
+  showNotification(trf('notify.assignedAll', {n:profileIds.length}));
 }
 
 function _autoStep(i) {
   if (i >= HOUSEHOLDS.length) { renderAll(); return; }
   const hh = HOUSEHOLDS[i];
+  if (!isProfileActiveFor(hh)) { _autoStep(i + 1); return; }
   if (Number.isInteger(hh.gt?.[state.activeProfile])) ps().expertLabels[hh.id] = hh.gt[state.activeProfile];
   state.activeHouseholdIndex = i;
   renderSidebar();
@@ -583,15 +657,15 @@ function _autoStep(i) {
 // ─── Optimización ─────────────────────────────────────────────────────────────
 
 function runOptimization() {
-  if (!canEvaluate()) { showNotification('Este rol no puede optimizar pesos.'); return; }
-  if (Object.keys(ps().expertLabels).length < 3) {
-    alert('Necesitas al menos 3 hogares etiquetados para optimizar.');
+  if (!canEvaluate()) { showNotification(tr('notify.cannotOptimize')); return; }
+  if (Object.keys(activeExpertLabels()).length < 3) {
+    showNotification(tr('notify.needThree'));
     return;
   }
   const btn = document.querySelector('[onclick="runOptimization()"]');
-  if (btn) { btn.textContent = '⟳ Optimizando…'; btn.disabled = true; }
+  if (btn) { btn.textContent = tr('sidebar.optimizing'); btn.disabled = true; }
   setTimeout(() => {
-    const w = optimizeWeights(state.activeProfile, ps().expertLabels, T());
+    const w = optimizeWeights(state.activeProfile, activeExpertLabels(), T());
     ps().optimizedWeights = w;
     ps().liveWeights = Object.fromEntries(pd().weight_keys.map(k => [k, (w[k] || 0) * 100]));
     ps().phase = 2;
@@ -608,13 +682,14 @@ function renderPhase2(area) {
   const w       = currentWeights();
   const profDef = pd();
   const color   = profDef.color;
-  const metrics = computeOrdinalMetrics(w, state.activeProfile, ps().expertLabels, T());
+  const metrics = computeOrdinalMetrics(w, state.activeProfile, activeExpertLabels(), T());
+  const hhActive = isProfileActiveFor(hh);
 
   // Score del hogar activo
   const sc        = scoreHousehold(hh, w, state.activeProfile, T());
   const predLevel = scoreToLevel(sc);
   const predDef   = VULNERABILITY_LEVELS[predLevel];
-  const expLabel  = ps().expertLabels[hh.id];
+  const expLabel  = hhActive ? ps().expertLabels[hh.id] : undefined;
 
   // Sliders de pesos
   const sliderRows = profDef.weight_keys.map(k => {
@@ -644,9 +719,9 @@ function renderPhase2(area) {
 
   area.innerHTML = `
     <div class="phase-intro">
-      <div><b>Ajuste de pesos · propuesta individual</b></div>
-      <div>Un peso de 0 excluye el indicador del cálculo de este perfil. El resto se normaliza automáticamente al 100%.</div>
-      ${canEvaluate() ? '' : '<div class="permission-note">Este rol puede consultar, pero no cambiar ni enviar pesos.</div>'}
+      <div><b>${tr('p2.title')}</b></div>
+      <div>${tr('p2.zeroNote')}</div>
+      ${canEvaluate() ? '' : `<div class="permission-note">${tr('p2.readOnly')}</div>`}
     </div>
     <div class="phase2-layout">
 
@@ -655,21 +730,23 @@ function renderPhase2(area) {
 
         <!-- Score hogar activo -->
         <div class="score-compact" id="score-compact" style="border-left-color:${predDef.color}">
-          <div class="sc-label">${hh.nombre} · ${state.activeProfile}</div>
+          <div class="sc-label">${escHtml(translatedHouseholdName(hh.nombre))} · ${state.activeProfile}</div>
           <div class="sc-row">
             <span class="sc-pct" id="sc-pct" style="color:${predDef.color}">${(sc*100).toFixed(1)}%</span>
-            <span class="sc-level" id="sc-level" style="color:${predDef.color}">${predLevel} · ${predDef.label}</span>
+            <span class="sc-level" id="sc-level" style="color:${predDef.color}">${predLevel} · ${escHtml(levelLabel(predLevel))}</span>
           </div>
-          ${expLabel !== undefined
-            ? `<div class="sc-exp">Experto: <b id="sc-exp-val" style="color:${VULNERABILITY_LEVELS[expLabel].color}">${expLabel} · ${VULNERABILITY_LEVELS[expLabel].label}</b></div>`
-            : `<div class="sc-exp text-muted" id="sc-exp-val">Sin etiquetar</div>`}
+          ${!hhActive
+            ? `<div class="sc-exp text-muted" id="sc-exp-val">${tr('p2.notActivated')}</div>`
+            : expLabel !== undefined
+              ? `<div class="sc-exp">${tr('p2.expert')}: <b id="sc-exp-val" style="color:${VULNERABILITY_LEVELS[expLabel].color}">${expLabel} · ${escHtml(levelLabel(expLabel))}</b></div>`
+              : `<div class="sc-exp text-muted" id="sc-exp-val">${tr('eval.unlabeled')}</div>`}
         </div>
 
         <!-- Métricas compactas -->
         <div class="metrics-compact">
           <span class="mc-item">MAE <b id="met-mae">${metrics.mae.toFixed(2)}</b></span>
           <span class="mc-item">RMSE <b id="met-rmse">${metrics.rmse.toFixed(2)}</b></span>
-          <span class="mc-item">Exactas <b id="met-exact">${(metrics.exactAccuracy*100).toFixed(0)}%</b></span>
+          <span class="mc-item">${tr('p2.exact')} <b id="met-exact">${(metrics.exactAccuracy*100).toFixed(0)}%</b></span>
           <span class="mc-item">±1 <b id="met-within1">${(metrics.withinOneAccuracy*100).toFixed(0)}%</b></span>
           <span class="mc-item text-muted">n=${metrics.n}</span>
         </div>
@@ -677,7 +754,7 @@ function renderPhase2(area) {
         <!-- Sliders de pesos -->
         <div class="weights-compact-card">
           <div class="wc-header">
-            <span style="font-size:0.82rem;font-weight:700;color:var(--accent2)">Pesos · ${state.activeProfile}</span>
+            <span style="font-size:0.82rem;font-weight:700;color:var(--accent2)">${tr('p2.weights')} · ${state.activeProfile}</span>
             <div style="display:flex;gap:4px">
               <button class="btn btn-secondary btn-sm" style="font-size:0.7rem;padding:2px 6px" onclick="resetToOptimized()">↩ opt</button>
               <button class="btn btn-secondary btn-sm" style="font-size:0.7rem;padding:2px 6px" onclick="resetToInit()">↩ ini</button>
@@ -696,9 +773,9 @@ function renderPhase2(area) {
           <button class="btn btn-secondary btn-sm" onclick="exportResults('json')">↓ JSON</button>
           <button class="btn btn-secondary btn-sm" onclick="exportResults('csv')">↓ CSV</button>
           <label class="export-gt-label">
-            <input type="checkbox" id="export-gt"> Incluir ref.
+            <input type="checkbox" id="export-gt"> ${tr('p2.includeRef')}
           </label>
-          <button class="btn btn-accent2 btn-sm" ${canEvaluate() ? '' : 'disabled'} onclick="submitExpertProposal()">Enviar a consenso →</button>
+          <button class="btn btn-accent2 btn-sm" ${canEvaluate() ? '' : 'disabled'} onclick="submitExpertProposal()">${tr('p2.sendConsensus')}</button>
         </div>
 
       </div>
@@ -709,11 +786,11 @@ function renderPhase2(area) {
           <span style="color:${color};font-weight:700;font-size:0.82rem">${escHtml(translatedProfileField(state.activeProfile,'name',profDef.name))}</span>
         </div>
         <div class="compact-table-header">
-          <span>Hogar</span>
-          <span>Score</span>
-          <span>Nivel</span>
-          <span>Experto</span>
-          <span>Error</span>
+          <span>${tr('p2.colHousehold')}</span>
+          <span>${tr('p2.colScore')}</span>
+          <span>${tr('p2.colLevel')}</span>
+          <span>${tr('p2.colExpert')}</span>
+          <span>${tr('p2.colError')}</span>
         </div>
         <div class="compact-table" id="compact-table">${tableRows}</div>
       </div>
@@ -726,7 +803,8 @@ function compactTableRow(hh, w) {
   const sc     = scoreHousehold(hh, w, state.activeProfile, T());
   const pred   = scoreToLevel(sc);
   const pDef   = VULNERABILITY_LEVELS[pred];
-  const lbl    = ps().expertLabels[hh.id];
+  const active = isProfileActiveFor(hh);
+  const lbl    = active ? ps().expertLabels[hh.id] : undefined;
   const isCur  = hh.id === hhA().id;
 
   let lblCell = '<span class="text-muted cr-dash">—</span>';
@@ -739,11 +817,22 @@ function compactTableRow(hh, w) {
     errCell = `<span style="color:${eColor};font-weight:700">${err > 0 ? '+' : ''}${err}</span>`;
   }
 
+  if (!active) {
+    return `<div class="compact-row profile-inactive ${isCur ? 'current' : ''}" id="trow-${hh.id}" data-inactive="1"
+               onclick="selectHousehold(${HOUSEHOLDS.indexOf(hh)})">
+    <span class="cr-name">${escHtml(translatedHouseholdName(hh.nombre))}</span>
+    <span class="cr-score text-muted">—</span>
+    <span class="cr-level text-muted"><span class="cr-lt">${escHtml(tr('builder.inactive'))}</span></span>
+    <span class="cr-expert">${lblCell}</span>
+    <span class="cr-err">${errCell}</span>
+  </div>`;
+  }
+
   return `<div class="compact-row ${isCur ? 'current' : ''}" id="trow-${hh.id}"
                onclick="selectHousehold(${HOUSEHOLDS.indexOf(hh)})">
-    <span class="cr-name">${hh.nombre}</span>
+    <span class="cr-name">${escHtml(translatedHouseholdName(hh.nombre))}</span>
     <span class="cr-score" style="color:${pDef.color}">${(sc*100).toFixed(0)}%</span>
-    <span class="cr-level" style="color:${pDef.color}">${pred} <span class="cr-lt">${pDef.short}</span></span>
+    <span class="cr-level" style="color:${pDef.color}">${pred} <span class="cr-lt">${escHtml(levelShort(pred))}</span></span>
     <span class="cr-expert">${lblCell}</span>
     <span class="cr-err">${errCell}</span>
   </div>`;
@@ -760,23 +849,23 @@ function persistConsensusSubmissions(items) {
 }
 
 function submitExpertProposal() {
-  if (!canEvaluate()) { showNotification('Solo el rol Persona experta puede enviar propuestas.'); return; }
+  if (!canEvaluate()) { showNotification(tr('cons.cannotSubmit')); return; }
   const weights = currentWeights();
-  const metrics = computeOrdinalMetrics(weights, state.activeProfile, ps().expertLabels, T());
+  const metrics = computeOrdinalMetrics(weights, state.activeProfile, activeExpertLabels(), T());
   const items = getConsensusSubmissions().filter(item => !(item.profile === state.activeProfile && item.author === state.username));
   items.push({
     id:`proposal_${Date.now()}`, profile:state.activeProfile, author:state.username,
     createdAt:new Date().toISOString(), weights, metrics, synthetic:false,
   });
   persistConsensusSubmissions(items);
-  showNotification(`Propuesta de ${state.activeProfile} enviada al espacio de consenso.`);
+  showNotification(trf('cons.sent', {profile:state.activeProfile}));
   switchWorkflowStage('expert-consensus');
 }
 
 function loadSyntheticConsensus() {
   const items = getConsensusSubmissions().filter(item => !(item.profile === state.activeProfile && item.synthetic));
   const keys = pd().weight_keys;
-  const names = ['Ejemplo A', 'Ejemplo B', 'Ejemplo C'];
+  const names = ['A', 'B', 'C'].map(letter => `${tr('cons.example')} ${letter}`);
   const factors = [
     keys.map((_, i) => i % 3 === 0 ? 1.35 : 0.9),
     keys.map((_, i) => i % 4 === 1 ? 0 : 1.15),
@@ -787,7 +876,7 @@ function loadSyntheticConsensus() {
     items.push({id:`synthetic_${state.activeProfile}_${n}`, profile:state.activeProfile, author:names[n], createdAt:new Date(Date.now() - n * 3600000).toISOString(), weights:normalizeWeights(raw, keys), metrics:null, synthetic:true});
   });
   persistConsensusSubmissions(items);
-  showNotification('Se han cargado 3 propuestas sintéticas, claramente marcadas.');
+  showNotification(tr('cons.loaded'));
   renderAll();
 }
 
@@ -808,10 +897,10 @@ function consensusRows(submissions) {
 function renderExpertConsensus(area) {
   const submissions = getConsensusSubmissions().filter(item => item.profile === state.activeProfile);
   if (!submissions.length) {
-    area.innerHTML = `<div class="future-stage"><div class="future-hero"><h2>Consenso experto · ${state.activeProfile}</h2>
-      <p>Aún no hay propuestas. Envía pesos desde la fase experta o carga ejemplos sintéticos para enseñar la reunión sin atribuir decisiones a personas reales.</p>
-      <div class="builder-actions"><button class="btn btn-secondary" onclick="switchWorkflowStage('expert-evaluation')">← Volver a expertos</button>
-      <button class="btn btn-accent2" onclick="loadSyntheticConsensus()">Cargar 3 propuestas sintéticas</button></div></div></div>`;
+    area.innerHTML = `<div class="future-stage"><div class="future-hero"><h2>${trf('cons.title', {profile:state.activeProfile})}</h2>
+      <p>${tr('cons.empty')}</p>
+      <div class="builder-actions"><button class="btn btn-secondary" onclick="switchWorkflowStage('expert-evaluation')">${tr('cons.back')}</button>
+      <button class="btn btn-accent2" onclick="loadSyntheticConsensus()">${tr('cons.loadSynthetic')}</button></div></div></div>`;
     return;
   }
   const rows = consensusRows(submissions);
@@ -819,31 +908,31 @@ function renderExpertConsensus(area) {
   const high = rows.filter(r => r.spread >= 0.15).length;
   const table = rows.map(r => {
     const cls = r.spread >= 0.15 ? 'dispersion-high' : r.spread >= 0.07 ? 'dispersion-medium' : 'dispersion-low';
-    return `<tr><td><b>${r.key}</b> · ${escHtml(INDICATOR_DEFS[r.key]?.name || r.key)}</td><td>${(r.min*100).toFixed(1)}%</td><td><b>${(candidate[r.key]*100).toFixed(1)}%</b></td><td>${(r.max*100).toFixed(1)}%</td><td class="${cls}">${(r.spread*100).toFixed(1)} pp</td><td>${r.zeros}/${submissions.length}</td></tr>`;
+    return `<tr><td><b>${r.key}</b> · ${escHtml(translatedIndicatorName(r.key, INDICATOR_DEFS[r.key]?.name || r.key))}</td><td>${(r.min*100).toFixed(1)}%</td><td><b>${(candidate[r.key]*100).toFixed(1)}%</b></td><td>${(r.max*100).toFixed(1)}%</td><td class="${cls}">${(r.spread*100).toFixed(1)} pp</td><td>${r.zeros}/${submissions.length}</td></tr>`;
   }).join('');
-  const submissionList = submissions.map(s => `<div class="submission-item"><span><b>${escHtml(s.author)}</b>${s.synthetic ? ' · muestra sintética' : ''}</span><small>${new Date(s.createdAt).toLocaleString()}</small></div>`).join('');
+  const submissionList = submissions.map(s => `<div class="submission-item"><span><b>${escHtml(s.author)}</b>${s.synthetic ? ` · ${tr('cons.syntheticTag')}` : ''}</span><small>${new Date(s.createdAt).toLocaleString()}</small></div>`).join('');
 
   area.innerHTML = `
-    <div class="demo-note"><strong>Prototipo de deliberación:</strong> la mediana es un punto de partida, no una decisión automática. Los desacuerdos y pesos cero permanecen visibles.</div>
+    <div class="demo-note">${tr('cons.note')}</div>
     <div class="consensus-overview">
-      <div class="consensus-kpi"><span>Propuestas</span><b>${submissions.length}</b></div>
-      <div class="consensus-kpi"><span>Perfil</span><b>${state.activeProfile}</b></div>
-      <div class="consensus-kpi"><span>Dispersión alta</span><b>${high}</b></div>
-      <div class="consensus-kpi"><span>Método candidato</span><b>Mediana</b></div>
+      <div class="consensus-kpi"><span>${tr('cons.proposals')}</span><b>${submissions.length}</b></div>
+      <div class="consensus-kpi"><span>${tr('cons.profile')}</span><b>${state.activeProfile}</b></div>
+      <div class="consensus-kpi"><span>${tr('cons.highSpread')}</span><b>${high}</b></div>
+      <div class="consensus-kpi"><span>${tr('cons.method')}</span><b>${tr('cons.median')}</b></div>
     </div>
     <div class="consensus-grid">
-      <section class="consensus-card"><h3>Comparación de pesos</h3>
-        <table class="consensus-table"><thead><tr><th>Indicador</th><th>Mín.</th><th>Candidata</th><th>Máx.</th><th>Dispersión</th><th>Ceros</th></tr></thead><tbody>${table}</tbody></table>
-        <div class="builder-actions"><button class="btn btn-secondary btn-sm" onclick="loadSyntheticConsensus()">Recargar muestras</button>
-        <button class="btn btn-accent2 btn-sm" ${canFacilitate() ? '' : 'disabled'} onclick="saveConsensusCandidate()">Guardar candidata para deliberación</button></div>
+      <section class="consensus-card"><h3>${tr('cons.compare')}</h3>
+        <table class="consensus-table"><thead><tr><th>${tr('cons.thIndicator')}</th><th>${tr('cons.thMin')}</th><th>${tr('cons.thCandidate')}</th><th>${tr('cons.thMax')}</th><th>${tr('cons.thSpread')}</th><th>${tr('cons.thZeros')}</th></tr></thead><tbody>${table}</tbody></table>
+        <div class="builder-actions"><button class="btn btn-secondary btn-sm" onclick="loadSyntheticConsensus()">${tr('cons.reload')}</button>
+        <button class="btn btn-accent2 btn-sm" ${canFacilitate() ? '' : 'disabled'} onclick="saveConsensusCandidate()">${tr('cons.saveCandidate')}</button></div>
       </section>
-      <aside><section class="consensus-card"><h3>Propuestas recibidas</h3><div class="submission-list">${submissionList}</div></section>
-        <section class="consensus-card" style="margin-top:12px"><h3>Salvaguardas</h3><ul class="guardrail-list"><li>No ocultar desacuerdos tras un promedio.</li><li>Revisar los indicadores con dispersión alta.</li><li>No usar participación comunitaria como mérito.</li><li>Registrar motivación y aprobación humana.</li></ul></section></aside>
+      <aside><section class="consensus-card"><h3>${tr('cons.received')}</h3><div class="submission-list">${submissionList}</div></section>
+        <section class="consensus-card" style="margin-top:12px"><h3>${tr('cons.safeguards')}</h3><ul class="guardrail-list">${['cons.guard1','cons.guard2','cons.guard3','cons.guard4'].map(key => `<li>${tr(key)}</li>`).join('')}</ul></section></aside>
     </div>`;
 }
 
 function saveConsensusCandidate() {
-  if (!canFacilitate()) { showNotification('Solo Facilitación puede guardar la candidata.'); return; }
+  if (!canFacilitate()) { showNotification(tr('cons.onlyFacilitator')); return; }
   const submissions = getConsensusSubmissions().filter(item => item.profile === state.activeProfile);
   if (!submissions.length) return;
   const rows = consensusRows(submissions);
@@ -852,19 +941,19 @@ function saveConsensusCandidate() {
   try { all = JSON.parse(localStorage.getItem(CONSENSUS_CANDIDATES_KEY) || '{}'); } catch (e) { all = {}; }
   all[state.activeProfile] = {weights:candidate, method:'Mediana normalizada', submissionCount:submissions.length, status:'Pendiente de deliberación', savedBy:state.username, createdAt:new Date().toISOString()};
   localStorage.setItem(CONSENSUS_CANDIDATES_KEY, JSON.stringify(all));
-  showNotification(`Candidata ${state.activeProfile} guardada como pendiente de deliberación.`);
+  showNotification(trf('cons.savedCandidate', {profile:state.activeProfile}));
 }
 
 function renderFutureStage(area, stage) {
   if (!stage) return;
   const cards = [
-    ['Resultado esperado', stage.outputs],
-    ['Quién participa', stage.actors],
-    ['Salvaguardas', stage.safeguards],
+    [tr('future.expected'), translatedWorkflowContent(stage, 'outputs')],
+    [tr('future.who'), translatedWorkflowContent(stage, 'actors')],
+    [tr('future.safeguards'), translatedWorkflowContent(stage, 'safeguards')],
   ];
-  area.innerHTML = `<div class="future-stage"><div class="future-hero"><span class="stage-status future">Roadmap</span><h2>${escHtml(stage.title)}</h2><p>${escHtml(stage.description)}</p></div>
+  area.innerHTML = `<div class="future-stage"><div class="future-hero"><span class="stage-status future">${escHtml(translatedWorkflowField(stage, 'state'))}</span><h2>${escHtml(translatedWorkflowField(stage, 'title'))}</h2><p>${escHtml(translatedWorkflowContent(stage, 'description'))}</p></div>
     <div class="future-grid">${cards.map(([title, items]) => `<section class="future-card"><h3>${title}</h3><ul>${items.map(i => `<li>${escHtml(i)}</li>`).join('')}</ul></section>`).join('')}</div>
-    <div class="permission-note" style="margin-top:12px">Esta fase se muestra para explicar el proceso completo, pero aún no permite introducir ni aprobar datos.</div></div>`;
+    <div class="permission-note" style="margin-top:12px">${tr('future.note')}</div></div>`;
 }
 
 // ─── Versiones de pesos ───────────────────────────────────────────────────────
@@ -882,26 +971,26 @@ function buildWeightVersionPanel() {
   const pvs = ((getWeightVersions()[state.username] || {})[state.activeProfile]) || [];
   const opts = pvs.length
     ? pvs.map(v => `<option value="${v.id}">${v.name}</option>`).join('')
-    : '<option disabled value="">Sin versiones guardadas</option>';
+    : `<option disabled value="">${tr('ver.none')}</option>`;
   return `<div class="versions-card">
-    <div class="vc-header">💾 Versiones · ${state.activeProfile} · ${state.username}</div>
+    <div class="vc-header">💾 ${tr('ver.title')} · ${state.activeProfile} · ${escHtml(state.username)}</div>
     <div class="vc-save-row">
-      <input type="text" id="version-name-input" class="vc-name-input" placeholder="Nombre (opcional)">
-      <button class="btn btn-accent2 btn-sm" onclick="saveWeightVersion()">Guardar</button>
+      <input type="text" id="version-name-input" class="vc-name-input" placeholder="${escHtml(tr('ver.namePlaceholder'))}">
+      <button class="btn btn-accent2 btn-sm" onclick="saveWeightVersion()">${tr('ver.save')}</button>
     </div>
     <div class="vc-load-row">
       <select id="version-select" class="vc-select">${opts}</select>
     </div>
     <div class="vc-actions">
-      <button class="btn btn-secondary btn-sm" onclick="loadSelectedVersion()">↑ Cargar</button>
-      <button class="btn btn-secondary btn-sm" onclick="deleteSelectedVersion()">✕ Eliminar</button>
-      <button class="btn btn-secondary btn-sm" onclick="exportWeightVersions()">↓ Exportar</button>
+      <button class="btn btn-secondary btn-sm" onclick="loadSelectedVersion()">${tr('ver.load')}</button>
+      <button class="btn btn-secondary btn-sm" onclick="deleteSelectedVersion()">${tr('ver.delete')}</button>
+      <button class="btn btn-secondary btn-sm" onclick="exportWeightVersions()">${tr('ver.export')}</button>
     </div>
   </div>`;
 }
 
 function saveWeightVersion() {
-  if (!canEvaluate()) { showNotification('Este rol no puede guardar versiones.'); return; }
+  if (!canEvaluate()) { showNotification(tr('ver.cannotSave')); return; }
   const p       = state.activeProfile;
   const user    = state.username;
   const w       = currentWeights();
@@ -914,39 +1003,39 @@ function saveWeightVersion() {
   const all = getWeightVersions();
   if (!all[user])    all[user] = {};
   if (!all[user][p]) all[user][p] = [];
-  all[user][p].push({id, name, createdAt: now.toISOString(), datasetLabel: state.datasetLabel, weights: w, levelThresholds: [...LEVEL_THRESHOLDS]});
+  all[user][p].push({id, name, createdAt: now.toISOString(), datasetLabel: datasetLabelText(), weights: w, levelThresholds: [...LEVEL_THRESHOLDS]});
   persistWeightVersions(all);
   if (inp) inp.value = '';
-  showNotification(`Versión guardada: ${name}`);
+  showNotification(trf('ver.saved', {name}));
   renderContentArea();
 }
 
 function loadSelectedVersion() {
   const sel  = document.getElementById('version-select');
-  if (!sel || !sel.value) { showNotification('Selecciona una versión.'); return; }
+  if (!sel || !sel.value) { showNotification(tr('ver.select')); return; }
   const pvs = ((getWeightVersions()[state.username] || {})[state.activeProfile]) || [];
   const v   = pvs.find(v => v.id === sel.value);
-  if (!v) { showNotification('Versión no encontrada.'); return; }
+  if (!v) { showNotification(tr('ver.notFound')); return; }
   ps().liveWeights = Object.fromEntries(pd().weight_keys.map(k => [k, (v.weights[k] || 0) * 100]));
   renderContentArea();
-  showNotification(`Cargados: ${v.name}`);
+  showNotification(trf('ver.loaded', {name:v.name}));
 }
 
 function deleteSelectedVersion() {
-  if (!canEvaluate()) { showNotification('Este rol no puede eliminar versiones.'); return; }
+  if (!canEvaluate()) { showNotification(tr('ver.cannotDelete')); return; }
   const sel  = document.getElementById('version-select');
-  if (!sel || !sel.value) { showNotification('Selecciona una versión.'); return; }
+  if (!sel || !sel.value) { showNotification(tr('ver.select')); return; }
   const user = state.username, p = state.activeProfile;
   const all  = getWeightVersions();
   if (all[user]?.[p]) all[user][p] = all[user][p].filter(v => v.id !== sel.value);
   persistWeightVersions(all);
-  showNotification('Versión eliminada.');
+  showNotification(tr('ver.deleted'));
   renderContentArea();
 }
 
 function exportWeightVersions() {
   const pvs = ((getWeightVersions()[state.username] || {})[state.activeProfile]) || [];
-  if (!pvs.length) { showNotification(`No hay versiones para ${state.activeProfile}.`); return; }
+  if (!pvs.length) { showNotification(trf('ver.noneFor', {profile:state.activeProfile})); return; }
   download(`sociarem_pesos_${state.username}_${state.activeProfile}.json`, JSON.stringify(pvs, null, 2), 'application/json');
 }
 
@@ -963,7 +1052,7 @@ function onWeightChange() {
     const first = sliders[0];
     first.value = '0.1';
     raw[first.dataset.key] = 0.1;
-    showNotification('Debe quedar al menos un indicador con peso mayor que cero.');
+    showNotification(tr('notify.minOneWeight'));
   }
   const norm = normalizeWeights(raw, pd().weight_keys);
   ps().liveWeights = raw;
@@ -975,18 +1064,17 @@ function updateLiveElements(w) {
   const sc       = scoreHousehold(hh, w, state.activeProfile, T());
   const pred     = scoreToLevel(sc);
   const pDef     = VULNERABILITY_LEVELS[pred];
-  const expLabel = ps().expertLabels[hh.id];
 
   // Score compact
   const scEl = document.getElementById('sc-pct');
   if (scEl) { scEl.textContent = (sc*100).toFixed(1) + '%'; scEl.style.color = pDef.color; }
   const slEl = document.getElementById('sc-level');
-  if (slEl) { slEl.textContent = `${pred} · ${pDef.label}`; slEl.style.color = pDef.color; }
+  if (slEl) { slEl.textContent = `${pred} · ${levelLabel(pred)}`; slEl.style.color = pDef.color; }
   const scCompact = document.getElementById('score-compact');
   if (scCompact) scCompact.style.borderLeftColor = pDef.color;
 
   // Métricas
-  const m = computeOrdinalMetrics(w, state.activeProfile, ps().expertLabels, T());
+  const m = computeOrdinalMetrics(w, state.activeProfile, activeExpertLabels(), T());
   const upd = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
   upd('met-mae',    m.mae.toFixed(2));
   upd('met-rmse',   m.rmse.toFixed(2));
@@ -1010,7 +1098,7 @@ function updateLiveElements(w) {
   // Tabla compacta
   for (const h of HOUSEHOLDS) {
     const row = document.getElementById(`trow-${h.id}`);
-    if (!row) continue;
+    if (!row || row.dataset.inactive) continue;
     const hs   = scoreHousehold(h, w, state.activeProfile, T());
     const hp   = scoreToLevel(hs);
     const hpD  = VULNERABILITY_LEVELS[hp];
@@ -1019,7 +1107,7 @@ function updateLiveElements(w) {
     const sEl  = row.querySelector('.cr-score');
     if (sEl) { sEl.textContent = (hs*100).toFixed(0) + '%'; sEl.style.color = hpD.color; }
     const lEl  = row.querySelector('.cr-level');
-    if (lEl) { lEl.style.color = hpD.color; lEl.innerHTML = `${hp} <span class="cr-lt">${hpD.short}</span>`; }
+    if (lEl) { lEl.style.color = hpD.color; lEl.innerHTML = `${hp} <span class="cr-lt">${escHtml(levelShort(hp))}</span>`; }
     const xEl  = row.querySelector('.cr-expert');
     if (xEl && hl !== undefined) xEl.innerHTML = `<span style="color:${VULNERABILITY_LEVELS[hl].color};font-weight:700">${hl}</span>`;
     const eEl  = row.querySelector('.cr-err');
@@ -1049,20 +1137,22 @@ function resetToInit() {
 
 function exportResults(format) {
   const w         = currentWeights();
-  const m         = computeOrdinalMetrics(w, state.activeProfile, ps().expertLabels, T());
+  const m         = computeOrdinalMetrics(w, state.activeProfile, activeExpertLabels(), T());
   const includeGt = document.getElementById('export-gt')?.checked || false;
 
   const households = HOUSEHOLDS.map(hh => {
     const sc   = scoreHousehold(hh, w, state.activeProfile, T());
     const pred = scoreToLevel(sc);
-    const lbl  = ps().expertLabels[hh.id];
+    const profileActive = isProfileActiveFor(hh);
+    const lbl  = profileActive ? ps().expertLabels[hh.id] : undefined;
     const entry = {
       id: hh.id, nombre: hh.nombre,
+      profile_active:     profileActive,
       expert_label:       lbl !== undefined ? lbl : null,
-      expert_label_text:  lbl !== undefined ? VULNERABILITY_LEVELS[lbl].label : null,
+      expert_label_text:  lbl !== undefined ? levelLabel(lbl) : null,
       score:              parseFloat(sc.toFixed(4)),
       predicted_level:    pred,
-      predicted_level_text: VULNERABILITY_LEVELS[pred].label,
+      predicted_level_text: levelLabel(pred),
       ordinal_error:      lbl !== undefined ? pred - lbl : null,
     };
     for (const k of pd().display_keys) entry[k] = hh[k] !== undefined ? hh[k] : null;
@@ -1081,7 +1171,7 @@ function exportResults(format) {
   if (format === 'json') {
     download(`sociarem_${state.activeProfile}.json`, JSON.stringify(data, null, 2), 'application/json');
   } else {
-    const cols = ['id','nombre','expert_label','expert_label_text','score','predicted_level','predicted_level_text','ordinal_error',...pd().display_keys,...(includeGt?['reference_label']:[])];
+    const cols = ['id','nombre','profile_active','expert_label','expert_label_text','score','predicted_level','predicted_level_text','ordinal_error',...pd().display_keys,...(includeGt?['reference_label']:[])];
     const rows = [cols.join(','), ...households.map(h => cols.map(c => JSON.stringify(h[c] ?? '')).join(','))];
     download(`sociarem_${state.activeProfile}.csv`, rows.join('\n'), 'text/csv');
   }
@@ -1101,13 +1191,13 @@ function renderDataPanel() {
   const el = document.getElementById('data-panel');
   if (!el) return;
   el.innerHTML = `
-    <div class="data-panel-header"><span class="data-panel-title">Datos</span></div>
-    <div class="data-panel-info">${state.datasetLabel}</div>
-    ${state.hasGT ? '' : '<div class="data-no-gt">Sin etiquetas de referencia</div>'}
+    <div class="data-panel-header"><span class="data-panel-title">${tr('data.title')}</span></div>
+    <div class="data-panel-info">${escHtml(datasetLabelText())}</div>
+    ${state.hasGT ? '' : `<div class="data-no-gt">${tr('data.noGt')}</div>`}
     <div class="data-panel-btns">
-      <button class="btn btn-secondary btn-sm btn-full mb-1" onclick="useDemoData()">↺ Datos demo</button>
-      <button class="btn btn-secondary btn-sm btn-full mb-1" onclick="openXlsxDialog()">↑ Subir XLSX</button>
-      <button class="btn btn-secondary btn-sm btn-full" onclick="downloadTemplate()">↓ Descargar plantilla</button>
+      <button class="btn btn-secondary btn-sm btn-full mb-1" onclick="useDemoData()">${tr('data.demo')}</button>
+      <button class="btn btn-secondary btn-sm btn-full mb-1" onclick="openXlsxDialog()">${tr('data.upload')}</button>
+      <button class="btn btn-secondary btn-sm btn-full" onclick="downloadTemplate()">${tr('data.template')}</button>
     </div>
   `;
   const refWrap = document.getElementById('ref-toggle-wrap');
@@ -1120,7 +1210,7 @@ function renderDataPanel() {
 function useDemoData() {
   HOUSEHOLDS = JSON.parse(JSON.stringify(DEMO_HOUSEHOLDS));
   state.hasGT = true;
-  state.datasetLabel = `Demo · ${HOUSEHOLDS.length} hogares`;
+  state.datasetFile = null;
   resetAppForNewDataset();
 }
 
@@ -1138,14 +1228,14 @@ function handleXlsxUpload(event) {
       const ws  = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {defval: ''});
       const res  = parseHouseholdsFromRows(rows);
-      if (res.error) { alert(res.error); return; }
+      if (res.error) { showNotification(res.error); return; }
       HOUSEHOLDS = res.households;
       state.hasGT = res.hasGT;
-      state.datasetLabel = `${file.name} · ${HOUSEHOLDS.length} hogares`;
+      state.datasetFile = file.name;
       if (res.binaryGtWarning) showNotification(res.binaryGtWarning);
       resetAppForNewDataset();
     } catch (err) {
-      alert('Error al leer el archivo XLSX: ' + err.message);
+      showNotification(trf('data.readError', {error:err.message}));
     }
   };
   reader.readAsArrayBuffer(file);
@@ -1161,17 +1251,17 @@ const REQUIRED_COLUMNS = [
 const GT_COLUMNS = ['gt_P1','gt_P2','gt_P3','gt_P4','gt_P5','gt_P6'];
 
 function parseHouseholdsFromRows(rows) {
-  if (!rows.length) return {error: 'El XLSX está vacío.'};
+  if (!rows.length) return {error: tr('data.empty')};
   const cols    = Object.keys(rows[0]);
   const missing = REQUIRED_COLUMNS.filter(c => !cols.includes(c));
-  if (missing.length) return {error: `El XLSX no es válido. Faltan columnas: ${missing.join(', ')}`};
+  if (missing.length) return {error: trf('data.missing', {cols:missing.join(', ')})};
   const hasGT = GT_COLUMNS.every(c => cols.includes(c));
 
   let binaryGtWarning = null;
   if (hasGT) {
     const vals = rows.flatMap(r => GT_COLUMNS.map(c => Number(r[c])));
     if (vals.every(v => v === 0 || v === 1) && vals.some(v => v === 1))
-      binaryGtWarning = 'Etiquetas binarias detectadas. Se interpretará 1 como Muy vulnerable (4).';
+      binaryGtWarning = tr('data.binary');
   }
 
   const mapGt = (v, binary) => {
@@ -1234,7 +1324,7 @@ function downloadTemplate() {
      I17:0,I18:25,I19:10,I20:0,I21:4,I22:0,I23:1,I24:0,I25:8,
      gt_P1:0,gt_P2:0,gt_P3:0,gt_P4:0,gt_P5:0,gt_P6:0},
   ];
-  const legendRows = VULNERABILITY_LEVELS.map(l => ({valor: l.value, significado: l.label}));
+  const legendRows = VULNERABILITY_LEVELS.map(l => ({valor: l.value, significado: levelLabel(l.value)}));
   const ws1 = XLSX.utils.json_to_sheet(rows);
   const ws2 = XLSX.utils.json_to_sheet(legendRows);
   const wb  = XLSX.utils.book_new();
@@ -1257,7 +1347,7 @@ function exportWeightsJson() {
 }
 
 function importWeightsJson(event) {
-  if (!canEvaluate()) { showNotification('Este rol no puede importar pesos.'); event.target.value = ''; return; }
+  if (!canEvaluate()) { showNotification(tr('weights.cannotImport')); event.target.value = ''; return; }
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -1276,9 +1366,9 @@ function importWeightsJson(event) {
         for (const pid of Object.keys(data)) apply(pid, data[pid]);
       }
       if (ps().phase === 2) renderContentArea();
-      showNotification('Pesos importados correctamente.');
+      showNotification(tr('weights.imported'));
     } catch (err) {
-      alert('Error al importar pesos: ' + err.message);
+      showNotification(trf('weights.importError', {error:err.message}));
     }
   };
   reader.readAsText(file);
