@@ -9,7 +9,7 @@ Migrada desde Python/Tkinter a HTML + CSS + JavaScript vanilla.
 
 ### Opción 1 — servidor local (recomendado)
 ```bash
-cd web-poc
+cd sociarem-profile-weight-tagger-web
 python -m http.server 8765
 ```
 Abrir: **http://localhost:8765**
@@ -26,12 +26,62 @@ Funciona en Chrome, Firefox y Edge modernos.
 |---|---|
 | `index.html` | Estructura HTML: login, topbar, sidebar, área principal |
 | `styles.css` | Diseño visual, layout, tarjetas, botones, sliders, tooltip |
+| `i18n.js` | Diccionarios y selector de idioma español, italiano e inglés |
 | `data.js` | Hogares, perfiles, indicadores, umbrales, funciones de cálculo |
 | `app.js` | Estado, renderizado, eventos, optimización, exportación |
+| `indicator-expression.js` | Nodos AST, constructores, validación de tipos y vistas derivadas |
+| `indicator-evaluator.js` | Evaluación genérica `evaluateExpression(ast, context)` y traza |
+| `indicator-units.js` | Inferencia ligera y compatibilidad de unidades |
+| `indicator-dependencies.js` | Grafo de dependencias y detección de ciclos |
+| `indicator-serialization.js` | Persistencia V2, import/export y migración del rule builder anterior |
+| `profile-definitions.js` | Seis perfiles documentados, activación, priorización y persistencia |
+| `profile-builder.js` | Interfaz compacta para construir y publicar perfiles en Fase 0 |
 
 ---
 
 ## Flujo de la demo
+
+La barra superior presenta el roadmap completo de siete fases: construcción de perfiles, evaluación experta, consenso experto, preferencias de participantes, consenso comunitario y dos fases de reparto de beneficios. Las tres primeras disponen de interacción; las demás están marcadas explícitamente como roadmap.
+
+### Roles de demostración
+
+- **Diseño metodológico**: edita borradores de perfiles, reglas activadoras y variables ponderables.
+- **Persona experta**: etiqueta casos, ajusta pesos y envía propuestas.
+- **Facilitación del consenso**: compara propuestas y guarda una candidata pendiente de deliberación.
+- **Observación y auditoría**: consulta sin editar.
+
+Estos roles solo deshabilitan controles en el navegador. No son autenticación ni autorización real; para producción hacen falta servidor, base de datos, cuentas y registro de auditoría.
+
+### Fase 0 — Constructor de perfiles
+
+- Precarga P1–P6 a partir de D1.5 v2 y de la propuesta de perfiles v1.1.
+- Separa explícitamente la **regla activadora** de la **regla de priorización**.
+- Cada condición indica qué criterio del indicador produce `TRUE`; AND, OR y NOT combinan esos resultados.
+- La regla activadora no contiene pesos. Si devuelve `FALSE`, el score del perfil es cero.
+- Las variables ponderables pasan a la fase experta con los pesos anteriores como punto de partida; un peso cero es válido.
+- I13 e I14 permanecen visibles como pendientes en P6 hasta disponer de datos y normalización ejecutable.
+- P5 muestra la cautela de versión de I19: aparece en D1.5, pero el catálogo V3.0 lo marca retirado.
+- Permite crear y eliminar perfiles, guardarlos como `DRAFT`, enviarlos a `REVIEW` y publicarlos para expertos. La eliminación se confirma, se conserva entre sesiones y limpia las evaluaciones, propuestas y versiones locales asociadas.
+- Importa y exporta definiciones JSON con `schemaVersion: 2`.
+- La pantalla de edición usa dos columnas, presenta la regla completa como fórmula lógica monoespaciada (`I2 OR (I1 AND I3)`) y conserva debajo un árbol jerárquico completo ROOT → AND/OR/NOT → indicadores. La preview muestra los diez hogares simultáneamente en dos columnas, sin scroll interno. Fuentes, versiones y cautelas viven en una pestaña metodológica separada.
+
+#### Modelo de perfil
+
+```text
+indicadores calculados
+        ↓
+regla activadora booleana (TRUE/FALSE)
+        ↓ TRUE
+suma ponderada normalizada
+        ↓
+score 0–1 utilizado en la fase experta
+```
+
+Los indicadores mantienen sus propios criterios y umbrales. La fase 0 decide qué indicadores activan un perfil y cómo se combinan; la fase experta decide cuánto pesa cada variable cuando el perfil está activo.
+
+### Idiomas
+
+El selector de idioma está disponible en el acceso y en la barra superior. La navegación y el constructor de perfiles funcionan en español, italiano e inglés, incluyendo nombres y criterios de indicadores, perfiles, reglas TRUE, preguntas, descripciones, justificaciones, cautelas, estados metodológicos y hogares sintéticos. La preferencia se guarda localmente.
 
 ### Login
 Pantalla inicial con campo de nombre de evaluador y campo de contraseña. El nombre se guarda en `localStorage` y se muestra en la topbar. La contraseña es única y compartida (constante `APP_PASSWORD` en `data.js`); no es un mecanismo de seguridad real, solo evita que alguien abra la app sin saberla durante una demo en directo. El botón «Cambiar» vuelve al login.
@@ -48,17 +98,26 @@ El experto evalúa cada hogar para el perfil activo.
 - Botón **Asignar todo (6 perfiles)** para rellenar instantáneamente las etiquetas de referencia en los 10 hogares y en los 6 perfiles a la vez.
 - Con ≥ 3 etiquetas aparece el botón **Optimizar pesos**.
 
-### Fase 2 — Scores, pesos y métricas (layout 2 columnas)
+### Fase 1b — Scores, pesos y métricas (dentro de la evaluación experta)
 
 **Columna izquierda:**
 - Banner de score compacto con nivel ordinal predicho vs. etiqueta experto.
 - Métricas ordinales: MAE, RMSE, exactitud exacta, precisión ±1.
 - Sliders de pesos (actualizan todo en tiempo real).
+- Un peso de **0** excluye realmente el indicador; los pesos restantes se normalizan al 100 %.
 - Panel de versiones de pesos: guardar / cargar / eliminar / exportar por nombre.
 - Botones de exportación JSON / CSV.
 
 **Columna derecha:**
 - Tabla compacta de los 10 hogares, con cabecera de columnas (Hogar · Score · Nivel · Experto · Error).
+
+### Fase 2 — Consenso experto
+
+- Recibe una propuesta por usuario y perfil.
+- Compara mínimo, mediana, máximo, dispersión y número de votos a peso cero.
+- Señala desacuerdos altos y mantiene las propuestas visibles.
+- Permite cargar tres ejemplos sintéticos para la reunión.
+- La mediana es solo una candidata para deliberación; nunca se presenta como consenso automático.
 
 ---
 
@@ -91,10 +150,11 @@ Cada perfil mantiene estado independiente: etiquetas experto, pesos optimizados 
 
 ## Fórmula de score
 
-Cada indicador se normaliza a `[0, 1]` (0 = sin vulnerabilidad, 1 = máxima).
+Cada indicador ponderable se normaliza a `[0, 1]` (0 = sin vulnerabilidad, 1 = máxima). Primero se evalúa la activación:
 
 ```
-score(hogar, perfil) = Σ(w_i × norm_i(hogar)) / Σ(w_i)
+score(hogar, perfil) = 0                                      si activación = FALSE
+score(hogar, perfil) = Σ(w_i × norm_i(hogar)) / Σ(w_i)        si activación = TRUE
 ```
 
 El nivel predicho se obtiene con `scoreToLevel(score)` usando umbrales:
@@ -188,7 +248,23 @@ El footer inferior muestra los logos de financiación (Unión Europea / Horizon 
 ## Limitaciones del PoC
 
 - Dataset sintético de 10 hogares — no representativo estadísticamente.
-- La optimización JS (descenso de gradiente) no replica scipy SLSQP; divergencia en pesos esperada.
+- La optimización JS usa gradiente numérico sobre la regla completa y no replica scipy SLSQP; se espera divergencia en pesos.
 - El login pide nombre y contraseña, pero la contraseña es una constante en texto plano (`APP_PASSWORD` en `data.js`); es una barrera para demos en directo, no una medida de seguridad real.
 - Las versiones de pesos se guardan en `localStorage`; se pierden si se limpia el navegador.
 - Los indicadores cualitativos (I7, I9, I10…) usan escalas ordinales simplificadas.
+- Las reglas de activación y los pesos iniciales siguen marcados como preliminares hasta validación experta. P5 conserva I19 por trazabilidad aunque el catálogo V3.0 lo retire.
+
+## Verificación
+
+```bash
+node --check app.js
+node --check data.js
+node tests/indicator-engine-tests.js
+node tests/profile-engine-tests.js
+node tests/smoke-tests.js
+node tests/script-loading-tests.js
+```
+
+Las pruebas cubren el motor de expresiones, los seis perfiles documentados, las compuertas de activación, los pesos cero, la serialización JSON, los tres idiomas, el orden de carga y los 60 casos históricos de paridad del núcleo ponderado.
+
+El detalle reversible de esta entrega está en `CHANGELOG_DEMO.md`. El trabajo vive en la rama `codex/demo-ready`, separada de `main`.

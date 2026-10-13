@@ -46,6 +46,148 @@ function scoreToLevel(score) {
   return 4;
 }
 
+// ─── Versionado metodológico de la demo ─────────────────────────────────────
+
+const MODEL_INFO = {
+  indicatorCatalog: 'V3.0 · 24 indicadores activos',
+  profileModel: 'v0.2 preliminar · P1–P6 basados en D1.5',
+  demoData: 'Datos sintéticos · no usar para decisiones reales',
+};
+
+const DEMO_ROLES = {
+  methodology: {
+    label: 'Diseño metodológico',
+    description: 'Construye y revisa perfiles, reglas activadoras y variables antes de publicarlos.',
+    canEditIndicators: true,
+    canEvaluate: false,
+    canFacilitate: false,
+  },
+  expert: {
+    label: 'Persona experta',
+    description: 'Etiqueta casos, ajusta pesos y envía propuestas individuales.',
+    canEditIndicators: false,
+    canEvaluate: true,
+    canFacilitate: false,
+  },
+  facilitator: {
+    label: 'Facilitación del consenso',
+    description: 'Compara propuestas y prepara una versión para deliberación.',
+    canEditIndicators: false,
+    canEvaluate: false,
+    canFacilitate: true,
+  },
+  observer: {
+    label: 'Observación y auditoría',
+    description: 'Consulta el proceso y su trazabilidad sin modificar resultados.',
+    canEditIndicators: false,
+    canEvaluate: false,
+    canFacilitate: false,
+  },
+};
+
+const WORKFLOW_STAGES = [
+  {
+    id: 'profile-builder', number: 0, short: 'Perfiles', title: 'Construcción de perfiles',
+    state: 'Prototipo disponible', implemented: true,
+    description: 'Combinar indicadores ya definidos en perfiles, separar activación y priorización, y publicar la lógica que después ponderan las personas expertas.',
+    outputs: ['Perfiles versionados', 'Reglas activadoras verificables', 'Variables ponderables para expertos'],
+    actors: ['Diseño metodológico', 'Revisión ética', 'Responsables de datos'],
+    safeguards: ['Activación separada de pesos', 'Datos ausentes ≠ cero', 'Trazabilidad documental'],
+  },
+  {
+    id: 'expert-evaluation', number: 1, short: 'Expertos', title: 'Evaluación experta individual',
+    state: 'Funcional', implemented: true,
+    description: 'Cada persona experta etiqueta hogares sintéticos y propone pesos para cada perfil de forma independiente.',
+    outputs: ['Etiquetas ordinales', 'Pesos individuales', 'Métricas y escenarios'],
+    actors: ['Personas expertas'],
+    safeguards: ['Pesos cero válidos', 'Propuesta individual', 'Datos sintéticos en la demo'],
+  },
+  {
+    id: 'expert-consensus', number: 2, short: 'Consenso', title: 'Consenso entre personas expertas',
+    state: 'Prototipo disponible', implemented: true,
+    description: 'Comparar propuestas individuales, localizar desacuerdos y preparar una versión para deliberación y aprobación.',
+    outputs: ['Mediana de pesos', 'Dispersión', 'Candidata consensuada'],
+    actors: ['Personas expertas', 'Facilitación'],
+    safeguards: ['No confundir media con consenso', 'Desacuerdos visibles', 'Decisión humana'],
+  },
+  {
+    id: 'community-input', number: 3, short: 'Usuarios', title: 'Preferencias de participantes',
+    state: 'Roadmap', implemented: false,
+    description: 'Recoger preferencias mediante una interfaz sencilla que parta de la propuesta experta aprobada.',
+    outputs: ['Prioridades comprensibles', 'Comentarios', 'Escenarios preferidos'],
+    actors: ['Participantes de la comunidad', 'Mediación local'],
+    safeguards: ['Baja carga cognitiva', 'Sin exposición de casos personales', 'Lenguaje no técnico'],
+  },
+  {
+    id: 'community-consensus', number: 4, short: 'Asamblea', title: 'Consenso comunitario',
+    state: 'Roadmap', implemented: false,
+    description: 'Deliberar sobre criterios generales y validar una propuesta en asamblea sin votar sobre hogares concretos.',
+    outputs: ['Propuesta validada', 'Quórum y votación', 'Motivación registrada'],
+    actors: ['Asamblea', 'Facilitación', 'Gobernanza de la REC'],
+    safeguards: ['Protección de vulnerabilidad severa', 'Privacidad', 'Responsabilidad explícita'],
+  },
+  {
+    id: 'benefits-expert', number: 5, short: 'Beneficios', title: 'Criterios de reparto expertos',
+    state: 'Roadmap', implemented: false,
+    description: 'Traducir perfiles y señales críticas en escenarios de reparto monetario, energético o comunitario.',
+    outputs: ['Escenarios comparables', 'Límites y mínimos', 'Explicaciones de impacto'],
+    actors: ['Personas expertas', 'Gobernanza'],
+    safeguards: ['Suficiencia', 'Proporcionalidad', 'Simulación antes de aprobar'],
+  },
+  {
+    id: 'benefits-community', number: 6, short: 'Validación', title: 'Validación del reparto',
+    state: 'Roadmap', implemented: false,
+    description: 'Revisar el reparto propuesto, aprobarlo y publicar una versión trazable y revisable.',
+    outputs: ['Versión aprobada', 'Informe de decisión', 'Historial de revisión'],
+    actors: ['Asamblea', 'Fondazione Messina', 'Responsables de gobernanza'],
+    safeguards: ['Explicabilidad', 'Revisión y apelación', 'Auditoría'],
+  },
+];
+
+// Catálogo de trabajo basado en V3.0. I19 se conserva solo para explicar el
+// histórico de la definición provisional de P5; no puede aprobarse de nuevo.
+const INDICATOR_CATALOG = [
+  {id:'I1',  name:'Capacidad de renta equivalente del hogar', type:'Numérico continuo', unit:'€/mes equivalente', sensitivity:'Alta', status:'Método pendiente', active:true,  sources:'DS2, DS8', direction:'Menor valor = mayor vulnerabilidad', formula:'Renta neta del hogar ajustada mediante una escala de equivalencia.'},
+  {id:'I2',  name:'Hogar por debajo del umbral de pobreza relativa', type:'Booleano', unit:'Sí / No', sensitivity:'Media', status:'Pendiente de referencia', active:true, sources:'DS2, DS8, DS30', direction:'Sí = mayor vulnerabilidad', formula:'I1 inferior al umbral estadístico territorial y temporal aprobado.'},
+  {id:'I3',  name:'Esfuerzo energético del hogar', type:'Numérico continuo', unit:'%', sensitivity:'Media', status:'Cálculo provisional', active:true, sources:'DS2, DS4, DS8, DS14', direction:'Mayor valor = mayor vulnerabilidad', formula:'Gasto energético anual dividido por renta equivalente anual.'},
+  {id:'I4',  name:'Impago o interrupción del suministro energético', type:'Contador', unit:'Episodios / 12 meses', sensitivity:'Alta', status:'Umbrales pendientes', active:true, sources:'DS4, DS5, DS8', direction:'Mayor valor = mayor vulnerabilidad', formula:'Número de avisos de impago, reducciones o cortes en los últimos 12 meses.'},
+  {id:'I5',  name:'Consumo eléctrico del hogar', type:'Numérico continuo', unit:'kWh', sensitivity:'Media', status:'Fuente pendiente', active:true, sources:'DS4, DS6', direction:'Contextual', formula:'Consumo eléctrico observado durante el periodo seleccionado.'},
+  {id:'I6',  name:'Consumo energético no eléctrico del hogar', type:'Numérico continuo', unit:'kWh equivalente', sensitivity:'Media', status:'Fuente pendiente', active:true, sources:'DS4, DS14', direction:'Contextual', formula:'Consumo de gas u otros combustibles durante el periodo seleccionado.'},
+  {id:'I7',  name:'Perfil horario del consumo eléctrico', type:'Serie temporal', unit:'kWh / intervalo', sensitivity:'Media', status:'Acceso pendiente', active:true, sources:'DS6', direction:'Contextual', formula:'Curva horaria o subhoraria de consumo, resumida mediante patrones aprobados.'},
+  {id:'I8',  name:'Pobreza energética oculta', type:'Derivado booleano/ordinal', unit:'Nivel', sensitivity:'Alta', status:'Modelo pendiente', active:true, sources:'DS4, DS6, DS8, DS9, DS11, DS15', direction:'Mayor nivel = mayor vulnerabilidad', formula:'Infraconsumo respecto a necesidades, confirmado con condiciones económicas y residenciales.'},
+  {id:'I9',  name:'Condiciones de habitabilidad de la vivienda', type:'Ordinal', unit:'Nivel', sensitivity:'Media', status:'Escala pendiente', active:true, sources:'DS8, DS10', direction:'Mayor nivel = mayor vulnerabilidad', formula:'Valoración de aislamiento, humedad, riesgos y deficiencias observables.'},
+  {id:'I10', name:'Sistemas y elementos de consumo energético', type:'Ordinal', unit:'Nivel', sensitivity:'Media', status:'Catálogo pendiente', active:true, sources:'DS8, DS12, DS13', direction:'Mayor nivel = mayor vulnerabilidad', formula:'Adecuación y eficiencia de los sistemas energéticos disponibles.'},
+  {id:'I11', name:'Acceso a ayudas sociales o energéticas', type:'Categórico', unit:'Estado de acceso', sensitivity:'Media', status:'Acceso pendiente', active:true, sources:'DS3, DS7, DS8', direction:'Sin acceso con necesidad = mayor vulnerabilidad', formula:'Reconocimiento, solicitud y acceso efectivo a ayudas relevantes.'},
+  {id:'I12', name:'Deuda y financiación del hogar', type:'Ordinal/numérico', unit:'Nivel o €', sensitivity:'Alta', status:'Alcance provisional', active:true, sources:'DS7, DS8, DS27', direction:'Mayor deuda = mayor vulnerabilidad', formula:'Deuda relevante y capacidad de financiación para cubrir necesidades básicas.'},
+  {id:'I13', name:'Capacidad de gestión energética y digital', type:'Ordinal', unit:'Nivel', sensitivity:'Media', status:'Escala pendiente', active:true, sources:'DS8', direction:'Menor capacidad = mayor vulnerabilidad', formula:'Capacidad práctica para comprender y gestionar servicios energéticos y digitales.'},
+  {id:'I14', name:'Participación en herramientas digitales comunitarias', type:'Contador/ordinal', unit:'Uso o nivel', sensitivity:'Media', status:'Lectura pendiente', active:true, sources:'DS29', direction:'Menor participación puede amplificar vulnerabilidad', formula:'Uso registrado de herramientas digitales de la comunidad durante el periodo.'},
+  {id:'I15', name:'Número de personas dependientes en el hogar', type:'Contador', unit:'Personas', sensitivity:'Media', status:'Definición revisada', active:true, sources:'DS8, DS16', direction:'Mayor valor = mayor fragilidad', formula:'Número de personas dependientes por edad o convivencia, separado de dependencia funcional.'},
+  {id:'I16', name:'Dependencia funcional o movilidad reducida', type:'Ordinal/booleano', unit:'Nivel', sensitivity:'Alta', status:'Fuente pendiente', active:true, sources:'DS8, DS17', direction:'Mayor nivel = mayor fragilidad', formula:'Presencia y grado funcional de dependencia o movilidad reducida.'},
+  {id:'I17', name:'Enfermedades crónicas relevantes', type:'Ordinal', unit:'Nivel 0–2', sensitivity:'Alta', status:'Agrupación pendiente', active:true, sources:'DS8, DS18', direction:'Mayor nivel = mayor dependencia energética', formula:'Necesidad térmica o eléctrica funcional, evitando registrar diagnósticos clínicos innecesarios.'},
+  {id:'I18', name:'Índice territorial de riesgo socioeconómico y ambiental', type:'Índice compuesto', unit:'Índice', sensitivity:'Baja', status:'Método pendiente', active:true, sources:'DS19, DS20', direction:'Mayor valor = mayor vulnerabilidad', formula:'Componentes socioeconómicos y ambientales separados y posteriormente contextualizados.'},
+  {id:'I19', name:'Acceso efectivo a infraestructuras y servicios básicos', type:'Numérico/compuesto', unit:'Tiempo o índice', sensitivity:'Baja', status:'Retirado en V3.0', active:false, sources:'Histórico DS21–DS23', direction:'Histórico', formula:'Conservado únicamente para trazabilidad de versiones anteriores.'},
+  {id:'I20', name:'Incapacidad percibida para mantener temperatura adecuada', type:'Ordinal', unit:'Nivel 0–3', sensitivity:'Media', status:'Validación pendiente', active:true, sources:'DS8', direction:'Mayor nivel = mayor vulnerabilidad', formula:'Máximo de la valoración estacional de frío y calor, sujeto a validación.'},
+  {id:'I21', name:'Ahorros líquidos o activos realizables', type:'Numérico continuo', unit:'€ o meses', sensitivity:'Alta', status:'Método pendiente', active:true, sources:'DS2, DS8', direction:'Menor valor = menor resiliencia', formula:'Recursos líquidos disponibles, interpretados en relación con la renta del hogar.'},
+  {id:'I22', name:'Apoyo social para necesidades energéticas', type:'Ordinal', unit:'Nivel', sensitivity:'Media', status:'Regla pendiente', active:true, sources:'DS8', direction:'Menor apoyo = mayor vulnerabilidad', formula:'Calidad y disponibilidad de apoyo social específicamente ante necesidades energéticas.'},
+  {id:'I23', name:'Participación en actividades comunitarias', type:'Contador/ordinal', unit:'Actividad o nivel', sensitivity:'Baja', status:'Fuente revisada', active:true, sources:'DS24', direction:'Contextual; no usar como mérito', formula:'Participación registrada en actividades comunitarias durante el periodo.'},
+  {id:'I24', name:'Estigma percibido', type:'Ordinal', unit:'Nivel', sensitivity:'Media', status:'Fuente pendiente', active:true, sources:'DS8, DS26', direction:'Mayor nivel = mayor vulnerabilidad', formula:'Frecuencia y consecuencia del estigma, mantenidas como dimensiones separadas.'},
+  {id:'I25', name:'Estabilidad residencial', type:'Booleano/contador', unit:'Años o estable/inestable', sensitivity:'Media', status:'Horizonte revisado', active:true, sources:'DS8, DS31', direction:'Menor estabilidad = mayor vulnerabilidad', formula:'Continuidad residencial y administrativa durante el horizonte aprobado.'},
+];
+
+const RULE_OPERATORS = [
+  {value:'lt', label:'<'}, {value:'lte', label:'≤'}, {value:'gt', label:'>'},
+  {value:'gte', label:'≥'}, {value:'eq', label:'='}, {value:'neq', label:'≠'},
+];
+
+function normalizeWeights(weights, keys) {
+  const raw = {};
+  for (const key of keys) raw[key] = Math.max(0, Number(weights[key]) || 0);
+  const sum = keys.reduce((total, key) => total + raw[key], 0);
+  if (sum <= 0) return raw;
+  for (const key of keys) raw[key] /= sum;
+  return raw;
+}
+
 // ─── I8 – Pobreza energética oculta (lógica derivada) ───────────────────────
 
 function i8LowConsumption(hh, T) {
@@ -514,10 +656,36 @@ let HOUSEHOLDS = JSON.parse(JSON.stringify(DEMO_HOUSEHOLDS));
 
 // ─── Funciones de cálculo ─────────────────────────────────────────────────────
 
-function scoreHousehold(hh, weights, profile, T) {
+function scoreLegacyHousehold(hh, weights, profile, T) {
   const keys = PROFILES[profile].weight_keys;
-  const totalW = keys.reduce((s, k) => s + (weights[k] || 0), 0) || 1;
+  const totalW = keys.reduce((s, k) => s + (weights[k] || 0), 0);
+  if (totalW <= 0) return 0;
   return keys.reduce((s, k) => s + (weights[k] || 0) * INDICATOR_DEFS[k].norm(hh, T), 0) / totalW;
+}
+
+function profileEvaluationContext(hh, weights, profile, T) {
+  const def = PROFILES[profile];
+  const indicators = {}, riskIndicators = {}, rawIndicators = {};
+  for (const id of def.display_keys) {
+    const indicator = INDICATOR_DEFS[id];
+    if (!indicator) continue;
+    indicators[id] = indicator.norm(hh, T);
+    riskIndicators[id] = Boolean(indicator.risk(hh, T));
+    rawIndicators[id] = hh[id];
+  }
+  return {indicators, riskIndicators, rawIndicators, weights, parameters:T};
+}
+
+function scoreHousehold(hh, weights, profile, T) {
+  const def = PROFILES[profile];
+  if (!def.expression || typeof evaluateExpression !== 'function') return scoreLegacyHousehold(hh, weights, profile, T);
+  if (def.weight_keys.every(key => !(Number(weights[key]) > 0))) return 0;
+  try {
+    return clamp(Number(evaluateExpression(def.expression, profileEvaluationContext(hh, weights, profile, T)).value) || 0);
+  } catch (error) {
+    console.warn(`No se pudo evaluar ${profile}: ${error.message}`);
+    return 0;
+  }
 }
 
 // MSE ordinal: target = expertLabel / 4, minimiza (score - target)²
@@ -536,30 +704,28 @@ function optimizeWeights(profile, expertLabels, thresholds) {
   const w = {};
   keys.forEach(k => w[k] = init[k]);
 
+  const loss = candidate => {
+    const normalized = normalizeWeights(candidate, keys);
+    const fit = labeled.reduce((sum, hh) => {
+      const error = scoreHousehold(hh, normalized, profile, thresholds) - expertLabels[hh.id] / 4;
+      return sum + error * error;
+    }, 0) / labeled.length;
+    const regularization = keys.reduce((sum, key) => sum + Math.pow((normalized[key] || 0) - (init[key] || 0), 2), 0);
+    return fit + LAMBDA * regularization;
+  };
+
   for (let iter = 0; iter < ITERS; iter++) {
-    const totalW = keys.reduce((s, k) => s + w[k], 0) || 1;
     const grad = {};
-    keys.forEach(k => grad[k] = 0);
-
-    for (const hh of labeled) {
-      const target   = expertLabels[hh.id] / 4;        // normalise 0-4 → 0-1
-      const rawScore = keys.reduce((s, k) => s + w[k] * INDICATOR_DEFS[k].norm(hh, thresholds), 0) / totalW;
-      const err      = rawScore - target;               // MSE gradient
-
-      for (const k of keys) {
-        const nk     = INDICATOR_DEFS[k].norm(hh, thresholds);
-        const numerN = keys.reduce((a, j) => a + w[j] * INDICATOR_DEFS[j].norm(hh, thresholds), 0);
-        grad[k] += err * (nk * totalW - numerN) / (totalW * totalW);
-      }
-    }
-
+    const epsilon = 0.0005;
     for (const k of keys) {
-      grad[k] += 2 * LAMBDA * (w[k] - init[k]);
-      w[k] = Math.max(0.001, w[k] - lr * grad[k]);
+      const plus = {...w, [k]:w[k] + epsilon};
+      const minus = {...w, [k]:Math.max(0, w[k] - epsilon)};
+      grad[k] = (loss(plus) - loss(minus)) / (plus[k] - minus[k] || epsilon);
+      w[k] = Math.max(0, w[k] - lr * grad[k]);
     }
 
     const sum = keys.reduce((s, k) => s + w[k], 0);
-    keys.forEach(k => w[k] /= sum);
+    if (sum > 0) keys.forEach(k => w[k] /= sum);
 
     if ((iter + 1) % 200 === 0) lr *= 0.6;
   }
@@ -632,7 +798,7 @@ function runParityTests() {
   for (const hh of HOUSEHOLDS) {
     for (const p of Object.keys(PROFILES)) {
       const key = `${hh.id}_${p}`;
-      const js = scoreHousehold(hh, PROFILES[p].init_weights, p, T);
+      const js = scoreLegacyHousehold(hh, PROFILES[p].init_weights, p, T);
       const py = PARITY_REFERENCE[key];
       const ok = Math.abs(js - py) < 0.001;
       if (ok) passed++; else failed++;
