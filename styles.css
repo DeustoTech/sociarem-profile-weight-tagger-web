@@ -1598,14 +1598,11 @@ textarea.form-control { resize: vertical; min-height: 58px; }
 .eval-top-row .ordinal-btn { padding:7px 4px; }
 @media (max-width: 1100px) { .eval-top-row { grid-template-columns:1fr; } }
 
-/* ─── Panel de datos compacto (plegable) ─── */
-.data-panel { padding:4px 10px; }
-.data-panel-details > summary { display:flex; align-items:baseline; gap:8px; cursor:pointer; list-style:none; padding:3px 0; }
-.data-panel-details > summary::-webkit-details-marker { display:none; }
-.data-panel-details > summary::before { content:'▸'; font-size:.7rem; color:var(--muted); }
-.data-panel-details[open] > summary::before { content:'▾'; }
+/* ─── Panel de datos compacto (siempre visible) ─── */
+.data-panel { padding:5px 10px 4px; }
+.data-panel-summary { display:flex; align-items:baseline; gap:8px; }
 .data-panel-details .data-panel-info { margin:0; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.data-panel-details .data-panel-btns { flex-direction:row; gap:4px; margin:4px 0 4px; }
+.data-panel-details .data-panel-btns { flex-direction:row; gap:4px; margin:4px 0 2px; }
 .data-panel-details .data-panel-btns .btn { flex:1; padding:3px 4px; font-size:.7rem; white-space:nowrap; }
 .sidebar-search-hint { display:none !important; }
 
@@ -1617,3 +1614,10 @@ textarea.form-control { resize: vertical; min-height: 58px; }
 .weight-row-c .wk { flex:0 0 32px; text-align:center; box-sizing:border-box; }
 .wslider { flex:1 1 auto; width:auto; min-width:120px; }
 @media (max-width: 1050px) { .phase2-layout { grid-template-columns:1fr; } }
+
+/* ─── Botones compactos del pie del sidebar ─── */
+.sidebar-actions { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+.sidebar-actions .btn { padding:4px 6px; font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sidebar-actions .sidebar-action-wide { grid-column:1 / -1; }
+#sidebar-bottom .sidebar-progress { margin-bottom:2px; }
+.sidebar-inactive-note { margin:0 0 5px; font-size:.66rem; }

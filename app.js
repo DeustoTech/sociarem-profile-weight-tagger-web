@@ -24,7 +24,6 @@ const state = {
       liveWeights: null,
     }])
   ),
-  dataPanelOpen: false,
   _autoTimer: null,
 };
 
@@ -351,17 +350,19 @@ function renderSidebarBottom() {
     </div>
     ${nInactive ? `<div class="sidebar-inactive-note">${trf('sidebar.inactiveCount', {n:nInactive})}</div>` : ''}
     ${inPhase2 ? `
-      <button class="btn btn-secondary btn-sm btn-full mb-1" onclick="backToPhase1()">${tr('sidebar.backPhase1')}</button>
+      <div class="sidebar-actions"><button class="btn btn-secondary btn-sm sidebar-action-wide" onclick="backToPhase1()">${tr('sidebar.backPhase1')}</button></div>
     ` : `
+      <div class="sidebar-actions">
       ${state.hasGT && profileHasReferenceLabels(state.activeProfile) ? `
-        <button class="btn btn-secondary btn-sm btn-full mb-1" ${canEvaluate() ? '' : 'disabled'} onclick="autoAssign(true)">▷ Auto-demo</button>
-        <button class="btn btn-secondary btn-sm btn-full mb-1"
+        <button class="btn btn-secondary btn-sm" ${canEvaluate() ? '' : 'disabled'} onclick="autoAssign(true)">▷ Auto-demo</button>
+        <button class="btn btn-secondary btn-sm"
                 title="${escHtml(tr('sidebar.assignAllTitle'))}"
                 ${canEvaluate() ? '' : 'disabled'} onclick="autoAssignAllProfiles()">${trf('sidebar.assignAll', {n:Object.keys(PROFILES).length})}</button>
       ` : ''}
       ${canOpt
-        ? `<button class="btn btn-accent2 btn-sm btn-full" onclick="runOptimization()">${tr('sidebar.optimize')}</button>`
-        : `<button class="btn btn-secondary btn-sm btn-full" disabled title="${escHtml(tr('sidebar.needThree'))}">${tr('sidebar.optimize')}</button>`}
+        ? `<button class="btn btn-accent2 btn-sm sidebar-action-wide" onclick="runOptimization()">${tr('sidebar.optimize')}</button>`
+        : `<button class="btn btn-secondary btn-sm sidebar-action-wide" disabled title="${escHtml(tr('sidebar.needThree'))}">${tr('sidebar.optimize')}</button>`}
+      </div>
     `}
   `;
 }
@@ -1185,17 +1186,17 @@ function download(filename, content, mime) {
 function renderDataPanel() {
   const el = document.getElementById('data-panel');
   if (!el) return;
-  // Panel compacto y plegable: deja casi todo el alto del sidebar a la lista de hogares.
+  // Panel compacto (dos líneas): deja casi todo el alto del sidebar a la lista de hogares.
   el.innerHTML = `
-    <details class="data-panel-details" ${state.dataPanelOpen ? 'open' : ''} ontoggle="state.dataPanelOpen = this.open">
-      <summary><span class="data-panel-title">${tr('data.title')}</span><span class="data-panel-info">${escHtml(datasetLabelText())}</span></summary>
+    <div class="data-panel-details">
+      <div class="data-panel-summary"><span class="data-panel-title">${tr('data.title')}</span><span class="data-panel-info">${escHtml(datasetLabelText())}</span></div>
       ${state.hasGT ? '' : `<div class="data-no-gt">${tr('data.noGt')}</div>`}
       <div class="data-panel-btns">
         <button class="btn btn-secondary btn-sm" title="${escHtml(tr('data.demo'))}" onclick="useDemoData()">${tr('data.demoShort')}</button>
         <button class="btn btn-secondary btn-sm" title="${escHtml(tr('data.upload'))}" onclick="openXlsxDialog()">${tr('data.uploadShort')}</button>
         <button class="btn btn-secondary btn-sm" title="${escHtml(tr('data.template'))}" onclick="downloadTemplate()">${tr('data.templateShort')}</button>
       </div>
-    </details>
+    </div>
   `;
   const refWrap = document.getElementById('ref-toggle-wrap');
   if (refWrap) {
