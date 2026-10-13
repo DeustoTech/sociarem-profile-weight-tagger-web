@@ -177,8 +177,9 @@ function validateProfileDefinition(definition) {
   const unavailable = dependencies.filter(id => !INDICATOR_DEFS[id]);
   const weightedKeys = collectWeightedKeys(definition.prioritizationExpression);
   const errors = [...activation.errors, ...prioritization.errors];
-  if (!weightedKeys.length) errors.push('La priorización necesita al menos un bloque WEIGHTED SUM para que la fase experta pueda ponderar variables.');
-  if (unavailable.length) errors.push(`Estos indicadores aún no tienen normalización ejecutable para perfiles: ${unavailable.join(', ')}.`);
+  const message = (key, fallback, vars = {}) => (typeof trf === 'function' ? trf(key, vars, fallback) : fallback);
+  if (!weightedKeys.length) errors.push(message('builder.needsWeighted', 'La priorización necesita al menos un bloque WEIGHTED SUM para que la fase experta pueda ponderar variables.'));
+  if (unavailable.length) errors.push(message('builder.notExecutable', `Estos indicadores aún no tienen normalización ejecutable para perfiles: ${unavailable.join(', ')}.`, {ids:unavailable.join(', ')}));
   return {
     valid:errors.length === 0,
     errors:[...new Set(errors)],

@@ -35,7 +35,7 @@ Funciona en Chrome, Firefox y Edge modernos.
 | `indicator-dependencies.js` | Grafo de dependencias y detección de ciclos |
 | `indicator-serialization.js` | Persistencia V2, import/export y migración del rule builder anterior |
 | `profile-definitions.js` | Seis perfiles documentados, activación, priorización y persistencia |
-| `profile-builder.js` | Interfaz compacta para construir y publicar perfiles en Fase 0 |
+| `profile-builder.js` | Interfaz compacta para construir y aprobar perfiles en Fase 0 |
 
 ---
 
@@ -45,6 +45,7 @@ La barra superior presenta el roadmap completo de siete fases: construcción de 
 
 ### Roles de demostración
 
+- **Demo (todos los permisos)**: rol por defecto para presentaciones; reúne los permisos de diseño, evaluación y facilitación para recorrer todas las fases sin cambiar de usuario.
 - **Diseño metodológico**: edita borradores de perfiles, reglas activadoras y variables ponderables.
 - **Persona experta**: etiqueta casos, ajusta pesos y envía propuestas.
 - **Facilitación del consenso**: compara propuestas y guarda una candidata pendiente de deliberación.
@@ -61,9 +62,9 @@ Estos roles solo deshabilitan controles en el navegador. No son autenticación n
 - Las variables ponderables pasan a la fase experta con los pesos anteriores como punto de partida; un peso cero es válido.
 - I13 e I14 permanecen visibles como pendientes en P6 hasta disponer de datos y normalización ejecutable.
 - P5 muestra la cautela de versión de I19: aparece en D1.5, pero el catálogo V3.0 lo marca retirado.
-- Permite crear y eliminar perfiles, guardarlos como `DRAFT`, enviarlos a `REVIEW` y publicarlos para expertos. La eliminación se confirma, se conserva entre sesiones y limpia las evaluaciones, propuestas y versiones locales asociadas.
+- Permite crear y eliminar perfiles, guardarlos como `DRAFT`, enviarlos a `REVIEW` y aprobarlos para expertos (estado «Aprobado»). La eliminación se confirma, se conserva entre sesiones y limpia las evaluaciones, propuestas y versiones locales asociadas.
 - Importa y exporta definiciones JSON con `schemaVersion: 2`.
-- La pantalla de edición usa dos columnas, presenta la regla completa como fórmula lógica monoespaciada (`I2 OR (I1 AND I3)`) y conserva debajo un árbol jerárquico completo ROOT → AND/OR/NOT → indicadores. La preview muestra los diez hogares simultáneamente en dos columnas, sin scroll interno. Fuentes, versiones y cautelas viven en una pestaña metodológica separada.
+- La pantalla de edición usa dos columnas, presenta la regla completa como fórmula lógica monoespaciada (`I2 OR (I1 AND I3)`) y conserva debajo un árbol jerárquico completo ROOT → AND/OR/NOT → indicadores. Las variables ponderables (paso 4) no muestran porcentajes y la preview (paso 5) indica solo qué hogares activan el perfil y cuáles no, con el recuento total. Fuentes, versiones y cautelas viven en una pestaña metodológica separada.
 
 #### Modelo de perfil
 
@@ -81,7 +82,7 @@ Los indicadores mantienen sus propios criterios y umbrales. La fase 0 decide qu�
 
 ### Idiomas
 
-El selector de idioma está disponible en el acceso y en la barra superior. La navegación y el constructor de perfiles funcionan en español, italiano e inglés, incluyendo nombres y criterios de indicadores, perfiles, reglas TRUE, preguntas, descripciones, justificaciones, cautelas, estados metodológicos y hogares sintéticos. La preferencia se guarda localmente.
+El selector de idioma está disponible en el acceso y en la barra superior. Toda la interfaz funciona en español, italiano e inglés: navegación, constructor de perfiles, evaluación experta (indicadores, valores, tooltips, niveles), ajuste de pesos, versiones, consenso, fases de roadmap, panel de datos y notificaciones. La preferencia se guarda localmente.
 
 ### Login
 Pantalla inicial con campo de nombre de evaluador y campo de contraseña. El nombre se guarda en `localStorage` y se muestra en la topbar. La contraseña es única y compartida (constante `APP_PASSWORD` en `data.js`); no es un mecanismo de seguridad real, solo evita que alguien abra la app sin saberla durante una demo en directo. El botón «Cambiar» vuelve al login.
@@ -90,12 +91,13 @@ Pantalla inicial con campo de nombre de evaluador y campo de contraseña. El nom
 El experto evalúa cada hogar para el perfil activo.
 
 - Selector de perfil (P1–P6) en la barra superior.
-- Listado de 10 hogares sintéticos en el sidebar.
+- Listado de 20 hogares sintéticos en el sidebar.
+- **Solo se etiquetan los hogares que activan el perfil.** Los demás aparecen atenuados como «No activo», no muestran botones de nivel, no cuentan en el progreso (`etiquetados / activados`) ni en la optimización, y ofrecen un botón para saltar al siguiente hogar activado.
 - Tarjetas de indicadores **neutrales** (sin rojo/verde para no sesgar al experto).
 - **5 botones ordinales**: `0 · No | 1 · Baja | 2 · Media | 3 · Alta | 4 · Muy alta`
-- Auto-avance al siguiente hogar al asignar etiqueta nueva.
+- Auto-avance al siguiente hogar activado sin etiquetar al asignar etiqueta nueva.
 - Botón **Auto-demo** para animación paso a paso (perfil activo).
-- Botón **Asignar todo (6 perfiles)** para rellenar instantáneamente las etiquetas de referencia en los 10 hogares y en los 6 perfiles a la vez.
+- Botón **Asignar todo** para rellenar instantáneamente las etiquetas de referencia en todos los perfiles, solo en los hogares donde cada perfil está activado.
 - Con ≥ 3 etiquetas aparece el botón **Optimizar pesos**.
 
 ### Fase 1b — Scores, pesos y métricas (dentro de la evaluación experta)
@@ -109,7 +111,7 @@ El experto evalúa cada hogar para el perfil activo.
 - Botones de exportación JSON / CSV.
 
 **Columna derecha:**
-- Tabla compacta de los 10 hogares, con cabecera de columnas (Hogar · Score · Nivel · Experto · Error).
+- Tabla compacta de los 20 hogares, con cabecera de columnas (Hogar · Score · Nivel · Experto · Error); los no activados aparecen atenuados.
 
 ### Fase 2 — Consenso experto
 
@@ -247,7 +249,7 @@ El footer inferior muestra los logos de financiación (Unión Europea / Horizon 
 
 ## Limitaciones del PoC
 
-- Dataset sintético de 10 hogares — no representativo estadísticamente.
+- Dataset sintético de 20 hogares — no representativo estadísticamente.
 - La optimización JS usa gradiente numérico sobre la regla completa y no replica scipy SLSQP; se espera divergencia en pesos.
 - El login pide nombre y contraseña, pero la contraseña es una constante en texto plano (`APP_PASSWORD` en `data.js`); es una barrera para demos en directo, no una medida de seguridad real.
 - Las versiones de pesos se guardan en `localStorage`; se pierden si se limpia el navegador.

@@ -81,7 +81,7 @@ function renderProfileBuilder(area) {
     </section>
 
     <section class="builder-card compact-card profile-preview-card">
-      <div class="builder-section-heading"><b>${tr('builder.preview')}</b><span class="field-help">${tr('builder.previewHint')}</span></div>
+      <div class="builder-section-heading"><b>${tr('builder.preview')}</b><span class="field-help">${trf('builder.activeCount', {n:countProfileActivations(definition, weights), total:HOUSEHOLDS.length})}</span></div>
       ${renderProfilePreview(definition, weights)}
     </section>
 
@@ -139,7 +139,7 @@ function profileMethodField(label, field, value, editable, textarea = false) {
 }
 
 function profileIndicatorGroup(label, ids = [], kind) {
-  return `<div class="profile-indicator-group"><b>${label}</b><div>${ids.length ? ids.map(id => `<span class="profile-chip ${kind}">${id}</span>`).join('') : '<span class="text-muted">Ninguno</span>'}</div></div>`;
+  return `<div class="profile-indicator-group"><b>${label}</b><div>${ids.length ? ids.map(id => `<span class="profile-chip ${kind}">${id}</span>`).join('') : `<span class="text-muted">${tr('builder.none')}</span>`}</div></div>`;
 }
 
 function executableIndicatorOptions() {
@@ -199,11 +199,10 @@ function renderProfileVariables(definition, weights, editable) {
   return definition.prioritizationExpression.operands.map((node,index) => {
     const id = definition.prioritizationExpression.weightKeys[index];
   const role = primary.has(id) ? tr('builder.primaryRole') : secondary.has(id) ? tr('builder.secondaryRole') : tr('builder.addedRole');
-    return `<div class="profile-variable-row ${weights[id] === 0 ? 'zero' : ''}">
+    return `<div class="profile-variable-row">
       <span class="badge ${primary.has(id) ? 'badge-pri' : 'badge-sec'}">${id}</span>
       <span class="profile-variable-name">${escHtml(translatedIndicatorName(id,INDICATOR_DEFS[id]?.name || node.label || id))}</span>
       <span class="profile-variable-role">${role}</span>
-      <span class="profile-variable-weight">${(weights[id] * 100).toFixed(1)}% ${tr('builder.initial')}</span>
       <button class="btn btn-secondary btn-sm" ${editable && definition.prioritizationExpression.operands.length > 1 ? '' : 'disabled'} onclick="profileRemovePriorityIndicator('${id}')">${tr('builder.remove')}</button>
     </div>`;
   }).join('');
@@ -221,17 +220,25 @@ function profileDefinitionContext(definition, household, weights) {
   return {indicators,riskIndicators,rawIndicators,weights,parameters:T()};
 }
 
+// Paso 5: solo se muestra si cada hogar activa o no el perfil (sin porcentajes).
+function profilePreviewActivation(definition, household, weights) {
+  try {
+    return Boolean(evaluateExpression(definition.activationExpression, profileDefinitionContext(definition, household, weights)).value);
+  } catch (error) {
+    return null;
+  }
+}
+
+function countProfileActivations(definition, weights) {
+  return HOUSEHOLDS.filter(household => profilePreviewActivation(definition, household, weights) === true).length;
+}
+
 function renderProfilePreview(definition, weights) {
-  const expression = profileDefinitionExpression(definition);
   return `<div class="profile-preview-grid">${HOUSEHOLDS.map(household => {
-    try {
-      const context = profileDefinitionContext(definition, household, weights);
-      const active = evaluateExpression(definition.activationExpression, context).value;
-      const score = Number(evaluateExpression(expression, context).value) || 0;
-      return `<div class="profile-preview-household ${active ? 'active' : ''}"><b>${escHtml(translatedHouseholdName(household.nombre))}</b><span>${active ? tr('builder.active') : tr('builder.inactive')}</span><strong>${(score * 100).toFixed(0)}%</strong></div>`;
-    } catch (error) {
-      return `<div class="profile-preview-household error"><b>${escHtml(translatedHouseholdName(household.nombre))}</b><span>Error</span><strong>—</strong></div>`;
-    }
+    const active = profilePreviewActivation(definition, household, weights);
+    const name = escHtml(translatedHouseholdName(household.nombre));
+    if (active === null) return `<div class="profile-preview-household error"><b>${name}</b><span>Error</span></div>`;
+    return `<div class="profile-preview-household ${active ? 'active' : 'inactive'}"><b>${name}</b><span>${active ? '✓ ' + tr('builder.active') : '— ' + tr('builder.inactive')}</span></div>`;
   }).join('')}</div>`;
 }
 
@@ -300,7 +307,7 @@ function profileAddPriorityIndicator() {
   if (!canEditProfiles()) return;
   const id = document.getElementById('profile-priority-indicator')?.value;
   const expression = profileBuilderState.definition.prioritizationExpression;
-  if (!id || expression.weightKeys.includes(id)) { showNotification('Ese indicador ya está incluido.'); return; }
+  if (!id || expression.weightKeys.includes(id)) { showNotification(tr('builder.alreadyIncluded')); return; }
   expression.operands.push(profileIndicatorRef(id));
   expression.weightKeys.push(id);
   expression.initialWeights[id] = 0;
@@ -322,13 +329,13 @@ function persistProfileBuilder(status) {
   if (!canEditProfiles()) return;
   const definition = profileBuilderState.definition;
   const validation = validateProfileDefinition(definition);
-  if (!validation.valid) { profileBuilderState.diagnostics = validation; showNotification('Corrige los errores antes de guardar.'); renderContentArea(); return; }
+  if (!validation.valid) { profileBuilderState.diagnostics = validation; showNotification(tr('builder.fixErrors')); renderContentArea(); return; }
   definition.status = status;
   definition.updatedAt = new Date().toISOString();
   definition.author = state.username;
   saveProfileDefinition(definition);
   if (status === 'APPROVED') ensureProfileState(definition.profileId);
-  showNotification(`${definition.profileId} guardado como ${status}.`);
+  showNotification(trf('builder.savedAs', {profile:definition.profileId, status:translatedLifecycleStatus(status)}));
   renderAll();
 }
 
@@ -401,10 +408,10 @@ function importProfileDefinition(event) {
       profileBuilderState.definition = cloneExpression(definition);
       profileBuilderState.selectedActivationPath = [];
       state.selectedProfileDefinitionId = definition.profileId;
-      showNotification(`${definition.profileId}: JSON importado; revisa y guarda.`);
+      showNotification(trf('builder.imported', {profile:definition.profileId}));
       renderAll();
     } catch (error) {
-      showNotification(`No se pudo importar: ${error.message}`);
+      showNotification(trf('builder.importError', {error:error.message}));
     }
   };
   reader.readAsText(file);
