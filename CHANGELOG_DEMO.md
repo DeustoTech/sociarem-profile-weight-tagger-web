@@ -39,6 +39,7 @@ Base conservada: `main` en el commit previo a esta entrega.
 32. **Fórmula lógica y condiciones completas.** Se elimina la dependencia visual del nodo ROOT: la regla vuelve a mostrarse como expresión monoespaciada (`I2 OR (I1 AND I3)`) y todas las condiciones aparecen simultáneamente como tarjetas seleccionables.
 33. **Árbol lógico restaurado y preview completa.** La fórmula textual se mantiene, pero vuelve el esquema jerárquico completo con ROOT, operadores conectados e indicadores; los diez hogares se muestran a la vez en una cuadrícula 5×2 sin scroll interno.
 34. **Preview a dos columnas y perfiles eliminables.** Los diez hogares vuelven a organizarse en dos columnas, sin scroll interno. Diseño metodológico puede eliminar cualquier perfil salvo el último mediante confirmación; la eliminación persiste y limpia sus evaluaciones, propuestas de consenso y versiones locales.
+35. **Identidad visual legible.** La cabecera lateral recorta correctamente el bloque SOCIAREM de la imagen panorámica original y lo muestra a tamaño visible. La franja de financiación aumenta su altura y adapta por separado los logos de la Unión Europea y SERI para que sus textos se puedan leer.
 
 ## Cómo volver atrás
 

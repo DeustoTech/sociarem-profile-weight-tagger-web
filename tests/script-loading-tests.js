@@ -7,6 +7,7 @@ const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const styles = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
 const localScripts = [...html.matchAll(/<script src="([^"]+)"/g)]
   .map(match => match[1])
   .filter(src => !/^https?:/.test(src));
@@ -84,6 +85,9 @@ const deletionRoundTrip = vm.runInContext(`(() => {
   return {deleted,restored};
 })()`, context);
 assert.deepEqual({...deletionRoundTrip}, {deleted:true,restored:true});
+assert.match(styles, /\.sidebar-logo-img\s*\{[^}]*height:\s*42px;[^}]*width:\s*42px;[^}]*object-fit:\s*cover;/s);
+assert.match(styles, /\.footer-logo-eu\s*\{\s*height:\s*34px;\s*\}/);
+assert.match(styles, /\.footer-logo-seri\s*\{\s*height:\s*38px;\s*\}/);
 assert.deepEqual(localScripts, [
   'i18n.js','data.js','indicator-units.js','indicator-expression.js','indicator-evaluator.js',
   'indicator-dependencies.js','indicator-serialization.js','profile-definitions.js','app.js','profile-builder.js',
